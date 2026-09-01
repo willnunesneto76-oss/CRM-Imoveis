@@ -320,7 +320,7 @@
         <div class="stat-card"><div class="num" id="stat-hoje">0</div><div class="lbl">Agendados para hoje</div></div>
         <div class="stat-card ok"><div class="num" id="stat-vendas">0</div><div class="lbl">🏠 Vendas fechadas (Compra)</div></div>
         <div class="stat-card ok"><div class="num" id="stat-captados">0</div><div class="lbl">🔑 Imóveis captados</div></div>
-        <div class="stat-card" style="background:var(--sage-soft)"><div class="num" id="stat-comissao" style="color:var(--sage)">R$ 0</div><div class="lbl">💰 Comissão gerada (negócios fechados)</div></div>
+        <div class="stat-card" style="background:var(--sage-soft)"><div class="num" id="stat-comissao" style="color:var(--sage)">R$ 0</div><div class="lbl">💰 Comissão gerada (só vendas)</div></div>
       </div>
 
       <div class="panel">
@@ -728,7 +728,7 @@ function renderDashboard(){
   document.getElementById('stat-vendas').textContent = currentLeads.filter(l => l.status === 'Venda').length;
   document.getElementById('stat-captados').textContent = currentLeads.filter(l => l.status === 'Captado').length;
   const comissaoTotal = currentLeads
-    .filter(l => isFechado(l.status))
+    .filter(l => l.status === 'Venda')
     .reduce((soma, l) => soma + (l.comissao || calcularComissao(l.valor, l.fifty)), 0);
   document.getElementById('stat-comissao').textContent = formatBRL(comissaoTotal);
 
