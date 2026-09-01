@@ -146,6 +146,7 @@
   .call-tag.hoje{background:var(--amber-soft);color:#8A5F16;}
   .call-tag.atrasado{background:var(--brick-soft);color:var(--brick);}
   .call-tag.futuro{background:var(--sage-soft);color:var(--sage);}
+  .call-tag.auto{background:#EDE7F6;color:#6B4FA0;}
   .call-name{font-weight:600;font-size:14.5px;flex:1;min-width:120px;}
   .call-meta{font-size:12.5px;color:var(--ink-soft);}
   .call-date{font-size:12.5px;color:var(--ink-soft);white-space:nowrap;}
@@ -167,6 +168,8 @@
   .kcol-head{padding:13px 14px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;}
   .kcol-head h3{margin:0;font-size:13.5px;font-weight:700;}
   .kcol-head .count{font-size:11.5px;background:rgba(0,0,0,.07);padding:1px 8px;border-radius:20px;color:var(--ink-soft);}
+  .kcol-remove{background:none;border:none;color:var(--ink-soft);font-size:13px;line-height:1;padding:2px 4px;border-radius:5px;}
+  .kcol-remove:hover{background:var(--brick-soft);color:var(--brick);}
   .kcol-body{padding:0 10px 10px;overflow-y:auto;flex:1;min-height:40px;}
   .kcol-body.dragover{background:rgba(40,64,94,.08);border-radius:8px;}
   .kcard{
@@ -375,6 +378,22 @@
       <div class="field-sm"><label>Link do anúncio</label><input id="f-link"></div>
       <div class="field-sm"><label>Observações gerais</label><textarea id="f-obs"></textarea></div>
 
+      <div class="field-sm" id="wrap-motivo-perda" style="display:none">
+        <label>Motivo da perda</label>
+        <select id="f-motivo-perda">
+          <option value="">Selecione…</option>
+          <option>Preço/condição não fechou</option>
+          <option>Cliente desistiu / sumiu</option>
+          <option>Imóvel já vendido por terceiros</option>
+          <option>Proprietário não quis captar</option>
+          <option>Comprou/alugou em outro lugar</option>
+          <option>Sem retorno após várias tentativas</option>
+          <option>Fora do perfil/orçamento</option>
+          <option>Outro</option>
+        </select>
+        <textarea id="f-motivo-perda-obs" placeholder="Detalhe o motivo (opcional)" style="margin-top:8px"></textarea>
+      </div>
+
       <div class="section-title">Histórico de contato</div>
       <div id="hist-list"></div>
       <div class="add-contact-row">
@@ -418,12 +437,12 @@
         }
    ===================================================================== */
 const firebaseConfig = {
-  apiKey: "AIzaSyC8D1vy8sSdO7Z_uLbqGpXPiK1YUZP1twc",
-  authDomain: "crm-imoveis-wn.firebaseapp.com",
-  projectId: "crm-imoveis-wn",
-  storageBucket: "crm-imoveis-wn.firebasestorage.app",
-  messagingSenderId: "370260383630",
-  appId: "1:370260383630:web:ba21b73f5e1a6a197a76df"
+  apiKey: "COLE_AQUI_SUA_API_KEY",
+  authDomain: "COLE_AQUI.firebaseapp.com",
+  projectId: "COLE_AQUI_O_PROJECT_ID",
+  storageBucket: "COLE_AQUI.appspot.com",
+  messagingSenderId: "COLE_AQUI",
+  appId: "COLE_AQUI"
 };
 
 const MASTER_EMAIL = "sequeagora@gmail.com";
@@ -434,7 +453,7 @@ const db = firebase.firestore();
 
 const STATUS_LIST = [
   "Novo Lead","Em contato","Qualificado","Aguardando Resposta","Em Follow-up",
-  "Visita Agendada","Proposta","Negociação","Venda","Alugou","Captado","Já vendeu",
+  "Visita Agendada","Proposta","Negociação","Venda","Captado","Já vendeu",
   "Desistiu de vender","Pós Venda","Perdido"
 ];
 
@@ -443,7 +462,7 @@ const STATUS_LIST = [
    Captação = tentativa de captar imóvel de um proprietário). */
 const STATUS_COMPRA = [
   "Novo Lead","Em contato","Aguardando Resposta","Qualificado",
-  "Visita Agendada","Proposta","Negociação","Venda","Alugou",
+  "Visita Agendada","Proposta","Negociação","Venda",
   "Pós Venda","Perdido"
 ];
 const STATUS_CAPTACAO = [
@@ -456,6 +475,16 @@ function grupoDoTipo(tipo){
   return TIPOS_CAPTACAO.indexOf(tipo) >= 0 ? 'captacao' : 'compra';
 }
 let kanbanTab = 'compra';
+
+/* Colunas ocultadas manualmente pelo usuário (personalização do kanban),
+   guardadas no navegador — por aba. */
+function hiddenKey(grupo){ return 'crm_hidden_status_' + grupo; }
+function getHiddenStatuses(grupo){
+  try{ return JSON.parse(localStorage.getItem(hiddenKey(grupo)) || '[]'); }catch(e){ return []; }
+}
+function setHiddenStatuses(grupo, arr){
+  localStorage.setItem(hiddenKey(grupo), JSON.stringify(arr));
+}
 
 const SEED_LEADS = [{"dataEntrada": "2026-08-25", "nome": "Charles", "telefone": "11 96650-6794", "tipo": "Compra", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-25", "nome": "Adison", "telefone": "19 97407-7914", "tipo": "Compra", "valor": 638000.0, "imovel": "AP 3 quartos Princesa Doeste Campinas", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.chavesnamao.com.br/imovel/apartamento-a-venda-3-quartos-com-garagem-sp-campinas-jardim-proenca-143m2-RS638000/id-20692474/?utm_source=chatgpt.com", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Liang Lee Da Silva", "telefone": "19 97406-9065", "tipo": "Captação", "valor": "", "imovel": "", "status": "Já vendeu", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Tiago Jose Benini Mastracouzo", "telefone": "11955776358 16992452545", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Ricardo Fabricio", "telefone": "19 99111-6090", "tipo": "Captação", "valor": "", "imovel": "", "status": "Desistiu de vender", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": "Disse que ap não está anunciado"}, {"dataEntrada": "2026-08-26", "nome": "Jose Octavio Vitoriano Martines Penna", "telefone": "12 98168-0487", "tipo": "Captação", "valor": "", "imovel": "", "status": "Já vendeu", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Elisete Aparecida Tezotto", "telefone": "15 99835-9035", "tipo": "Captação", "valor": "", "imovel": "", "status": "Já vendeu", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Heraldo Canto Micheli", "telefone": "19982716793 19992305606", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Paulo Damiao Carvalho Reis", "telefone": "", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-27", "proximoFollowup": null, "diasSemContato": 4, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Heloisa Machado Fleury", "telefone": "19 98140-2091", "tipo": "Captação", "valor": "", "imovel": "", "status": "Já vendeu", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": "Disse que vendeu há 2 anos"}, {"dataEntrada": "2026-08-26", "nome": "Magali Aparecida Lando Cecilio", "telefone": "19997721726 19996051978", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Felipe", "telefone": "11 99388-4762", "tipo": "Compra", "valor": 240000.0, "imovel": "AP 1 quarto Centro", "status": "Visita Agendada", "temperatura": "🔥 Quente", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Fatima", "telefone": "11 98624-8038", "tipo": "Compra", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Erica (curiosidade)", "telefone": "19 98604-4141", "tipo": "Compra", "valor": "", "imovel": "Casa 3 quartos Campos Elíseos", "status": "Perdido", "temperatura": "❄️ Frio", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "Geraldo", "telefone": "19991645798.0", "tipo": "Compra", "valor": 500000.0, "imovel": "Casa 3 quartos Taqueral", "status": "Em contato", "temperatura": "😐 Morno", "ultimoContato": "2026-08-27", "proximoFollowup": null, "diasSemContato": 4, "prioridade": "🟢 Baixa", "link": "https://www.imovelweb.com.br/propriedades/casa-a-venda-taquaral-3-quartos-150-m2-3043865135.html", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "Juliana", "telefone": "19971182229.0", "tipo": "Compra", "valor": 200000.0, "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-vila-palacios-2-quartos-52-m2-3043844488.html", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "Renata", "telefone": "19 98224-3070", "tipo": "Compra", "valor": 290000.0, "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-27", "proximoFollowup": null, "diasSemContato": 4, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "David Alex", "telefone": "19 98907-7026", "tipo": "Compra", "valor": 320000.0, "imovel": "", "status": "Visita Agendada", "temperatura": "🔥 Quente", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "Casa com 2 quartos na Rua Edson Sales de Oliveira, 8, Botafogo, Campinas - SP - ID: 45965465 | Chaves na Mão", "observacoes": "Mora em Americana e está se mudando para Campinas, esposa já mora em campinas"}, {"dataEntrada": "2026-08-27", "nome": "Thalita", "telefone": "19 98391-2208", "tipo": "Compra", "valor": 290000.0, "imovel": "", "status": "Em contato", "temperatura": "😐 Morno", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": "Enviar opções AP 3 quartos Flamboyant"}, {"dataEntrada": "2026-08-27", "nome": "José", "telefone": "19 99741-7120", "tipo": "Compra", "valor": 200000.0, "imovel": "", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-jardim-san-diego-2-quartos-42-3043867253.html", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "Cida", "telefone": "71 9937-9287", "tipo": "Compra", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-jardim-san-diego-2-quartos-42-3043867253.html", "observacoes": ""}, {"dataEntrada": "2026-08-28", "nome": "Camila", "telefone": "19 98183-3610", "tipo": "Compra", "valor": 265000.0, "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-28", "nome": "Rose (Queria sábado)", "telefone": "(19) 98337-2235", "tipo": "Compra", "valor": 290000.0, "imovel": "", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.chavesnamao.com.br/imovel/apartamento-a-venda-2-quartos-com-garagem-sp-campinas-jardim-dos-oliveiras-RS290000/id-45965097/", "observacoes": ""}, {"dataEntrada": "2026-08-28", "nome": "Carlos Martin", "telefone": "19 99782-4435", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-28", "nome": "Oswaldo", "telefone": "11992925775.0", "tipo": "Compra", "valor": 500000.0, "imovel": "Casa Taquaral 3 quartos 150m", "status": "Em Follow-up", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/casa-a-venda-taquaral-3-quartos-150-m2-3043865135.html", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Andre (Número não existe)", "telefone": "11 98748-5637", "tipo": "Compra", "valor": 695000.0, "imovel": "Casa 5 Q PQ Universidades", "status": "Perdido", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Tania (permuta)", "telefone": "19 98293-1369", "tipo": "Compra", "valor": 540000.0, "imovel": "Casa 2Q Jd Interlagos", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Karen", "telefone": "19 99795-6128", "tipo": "Compra", "valor": 266000.0, "imovel": "Casa 3 Q Campos Elíseos", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.chavesnamao.com.br/imovel/casa-a-venda-3-quartos-com-garagem-sp-campinas-jardim-campos-eliseos-RS266000/id-45960681/", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Gabriela", "telefone": "15 99726-7110", "tipo": "Compra", "valor": 240000.0, "imovel": "AP 2 Q Proença", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "sem link", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Monica", "telefone": "19999158612.0", "tipo": "Compra", "valor": "325 / 340 k", "imovel": "Casa Von Zuben 3 Q e 4 Q", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/casa-a-venda-jardim-antonio-von-zuben-3-quartos-80-3043858677.html", "observacoes": "https://www.imovelweb.com.br/propriedades/casa-a-venda-jardim-antonio-von-zuben-4-quartos-3043841267.html"}, {"dataEntrada": "2026-08-31", "nome": "Naldi", "telefone": "19981238560.0", "tipo": "Compra", "valor": 700000.0, "imovel": "AP 3 Q Pq Prado", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Diego", "telefone": "19 97420-9579", "tipo": "Compra", "valor": 290000.0, "imovel": "AP 2 Q VL União", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "sem link", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Gislaine", "telefone": "19993322869.0", "tipo": "Compra", "valor": 360000.0, "imovel": "Ap 2Q Pq Industrial", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-parque-industrial-2-quartos-54-3043860973.html", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Ana Paula", "telefone": "19987056796.0", "tipo": "Compra", "valor": 425000.0, "imovel": "Ap 2 Q Vila Industrial", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-vila-industrial-2-quartos-64-3043841280.html", "observacoes": ""}];
 
@@ -526,10 +555,27 @@ function startLeadsListener(){
     }
     currentLeads = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
     loadingApp.style.display = 'none';
+    await migrarAlugouParaPerdido();
+    await autoSugerirFollowups();
     renderAll();
   }, function(err){
     loadingApp.textContent = 'Erro ao carregar dados: ' + err.message + ' — verifique o firebaseConfig e as regras do Firestore.';
   });
+}
+
+/* Migração única: status antigo "Alugou" não existe mais como coluna —
+   vira Perdido com um motivo padrão (o usuário pode editar o motivo depois). */
+async function migrarAlugouParaPerdido(){
+  const alugados = currentLeads.filter(l => l.status === 'Alugou');
+  if(alugados.length === 0) return;
+  const batch = db.batch();
+  alugados.forEach(function(l){
+    batch.update(db.collection('leads').doc(l.id), {
+      status: 'Perdido',
+      motivoPerda: l.motivoPerda || 'Imóvel alugado (status antigo "Alugou" migrado automaticamente).'
+    });
+  });
+  await batch.commit();
 }
 
 async function seedInitialData(){
@@ -592,13 +638,45 @@ function diasEntre(a,b){
 }
 
 function isFechado(status){
-  // Negócio realmente fechado (venda ou aluguel concluído com o cliente).
-  return ['Venda','Alugou','Captado'].indexOf(status) >= 0;
+  // Negócio realmente fechado (venda concluída ou imóvel captado com sucesso).
+  return ['Venda','Captado'].indexOf(status) >= 0;
 }
 function isEncerrado(status){
   // "Já vendeu" = tentativa de captação que não vingou (o dono já vendeu
   // por fora) — conta como perdido, nunca como negócio fechado.
   return isFechado(status) || ['Desistiu de vender','Perdido','Já vendeu'].indexOf(status) >= 0;
+}
+
+/* Regra automática de follow-up:
+   se o lead não está perdido/vendido, não tem uma próxima data de
+   follow-up marcada, e já se passaram 2+ dias desde o último contato
+   (ou desde a criação, se nunca houve contato) — o sistema sugere e
+   grava sozinho uma data de follow-up (2 dias após o último contato),
+   pra ninguém ficar esquecido "no limbo" sem próxima ação definida. */
+async function autoSugerirFollowups(){
+  const hoje = todayStr();
+  const paraAtualizar = [];
+  currentLeads.forEach(function(l){
+    if(isEncerrado(l.status)) return;
+    if(l.proximoFollowup) return;
+    const hist = (l.historico||[]).map(h=>h.data).filter(Boolean).sort();
+    const ultimaRef = hist.length ? hist[hist.length-1] : (l.criadoEm || hoje);
+    const dias = diasEntre(ultimaRef, hoje);
+    if(dias >= 2){
+      const sugerida = new Date(ultimaRef);
+      sugerida.setDate(sugerida.getDate() + 2);
+      const sugeridaStr = sugerida.toISOString().slice(0,10);
+      paraAtualizar.push({id:l.id, data:sugeridaStr});
+      l.proximoFollowup = sugeridaStr;
+      l.followupAutomatico = true;
+    }
+  });
+  if(paraAtualizar.length === 0) return;
+  const batch = db.batch();
+  paraAtualizar.forEach(function(x){
+    batch.update(db.collection('leads').doc(x.id), {proximoFollowup: x.data, followupAutomatico: true});
+  });
+  await batch.commit();
 }
 
 function renderDashboard(){
@@ -628,6 +706,7 @@ function renderDashboard(){
       else if(l.proximoFollowup === hoje){ tag='hoje'; tagLabel = 'Hoje'; }
       return '<div class="call-row" onclick="openLead(\'' + l.id + '\')">' +
         '<span class="call-tag ' + tag + '">' + tagLabel + '</span>' +
+        (l.followupAutomatico ? '<span class="call-tag auto">🤖 sugerido</span>' : '') +
         '<span class="call-name">' + esc(l.nome) + '</span>' +
         '<span class="call-meta">' + esc(l.telefone||'sem telefone') + ' · ' + esc(l.status) + '</span>' +
         '</div>';
@@ -692,17 +771,45 @@ function renderKanban(){
   const grupo = kanbanTab; // 'compra' | 'captacao'
   const leadsDoGrupo = grupo === 'compra' ? leadsCompra : leadsCaptacao;
   const baseStatus = grupo === 'compra' ? STATUS_COMPRA : STATUS_CAPTACAO;
-  const statusesInUse = baseStatus.slice();
+  const hidden = getHiddenStatuses(grupo);
+  let statusesInUse = baseStatus.slice();
   leadsDoGrupo.forEach(l => { if(statusesInUse.indexOf(l.status) < 0) statusesInUse.push(l.status); });
+  // nunca esconder uma coluna que ainda tem leads dentro, mesmo se foi "removida" antes
+  statusesInUse = statusesInUse.filter(function(status){
+    if(hidden.indexOf(status) < 0) return true;
+    return leadsDoGrupo.some(l => l.status === status);
+  });
 
   board.innerHTML = statusesInUse.map(function(status){
     const leads = leadsDoGrupo.filter(l => l.status === status);
+    const podeExcluir = leads.length === 0;
     return '<div class="kcol">' +
-      '<div class="kcol-head"><h3>' + esc(status) + '</h3><span class="count">' + leads.length + '</span></div>' +
+      '<div class="kcol-head"><h3>' + esc(status) + '</h3>' +
+        '<span style="display:flex;align-items:center;gap:6px">' +
+        '<span class="count">' + leads.length + '</span>' +
+        (podeExcluir ? '<button class="kcol-remove" data-status="' + esc(status) + '" title="Remover esta coluna do quadro">✕</button>' : '') +
+        '</span></div>' +
       '<div class="kcol-body" data-status="' + esc(status) + '">' +
         leads.map(cardHtml).join('') +
       '</div></div>';
-  }).join('') + '<div class="add-lead-col"><button class="add-lead-btn" onclick="openNewLead(\'' + grupo + '\')">+ Adicionar lead</button></div>';
+  }).join('') + '<div class="add-lead-col"><button class="add-lead-btn" onclick="openNewLead(\'' + grupo + '\')">+ Adicionar lead</button>' +
+    (hidden.length ? '<button class="btn-ghost" id="btn-restore-cols" style="margin-top:8px;font-size:12px;width:100%">↺ Restaurar colunas ocultas</button>' : '') +
+    '</div>';
+
+  const rc = document.getElementById('btn-restore-cols');
+  if(rc) rc.addEventListener('click', function(){ setHiddenStatuses(grupo, []); renderKanban(); });
+
+  document.querySelectorAll('.kcol-remove').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      const status = btn.dataset.status;
+      if(!confirm('Remover a coluna "' + status + '" deste quadro? Ela some da visualização (você pode restaurá-la depois com "Restaurar colunas ocultas").')) return;
+      const h = getHiddenStatuses(grupo);
+      h.push(status);
+      setHiddenStatuses(grupo, h);
+      renderKanban();
+    });
+  });
 
   document.querySelectorAll('.kcard').forEach(function(card){
     card.addEventListener('dragstart', function(e){
@@ -715,15 +822,41 @@ function renderKanban(){
   document.querySelectorAll('.kcol-body').forEach(function(col){
     col.addEventListener('dragover', function(e){ e.preventDefault(); col.classList.add('dragover'); });
     col.addEventListener('dragleave', function(){ col.classList.remove('dragover'); });
-    col.addEventListener('drop', function(e){
+    col.addEventListener('drop', async function(e){
       e.preventDefault();
       col.classList.remove('dragover');
-      if(dragLeadId){
-        db.collection('leads').doc(dragLeadId).update({status: col.dataset.status});
-        dragLeadId = null;
+      const novoStatus = col.dataset.status;
+      if(!dragLeadId) return;
+      const leadId = dragLeadId;
+      dragLeadId = null;
+      if(novoStatus === 'Perdido'){
+        const motivo = promptMotivoPerda();
+        if(motivo === null) return; // cancelou, não move o card
+        await db.collection('leads').doc(leadId).update({
+          status: novoStatus,
+          motivoPerda: motivo.motivo,
+          motivoPerdaObs: motivo.obs
+        });
+      } else {
+        await db.collection('leads').doc(leadId).update({status: novoStatus});
       }
     });
   });
+}
+
+function promptMotivoPerda(){
+  const opcoes = [
+    'Preço/condição não fechou','Cliente desistiu / sumiu','Imóvel já vendido por terceiros',
+    'Proprietário não quis captar','Comprou/alugou em outro lugar','Sem retorno após várias tentativas',
+    'Fora do perfil/orçamento','Outro'
+  ];
+  const texto = 'Motivo da perda (digite o número):\n' + opcoes.map((o,i)=>(i+1)+' - '+o).join('\n');
+  const escolha = prompt(texto, '1');
+  if(escolha === null) return null;
+  const idx = parseInt(escolha) - 1;
+  const motivo = opcoes[idx] || 'Outro';
+  const obs = prompt('Detalhar o motivo (opcional):', '') || '';
+  return {motivo: motivo, obs: obs};
 }
 
 function cardHtml(l){
@@ -776,13 +909,20 @@ function fillStatusSelect(){
   currentLeads.forEach(l => { if(statusesInUse.indexOf(l.status) < 0) statusesInUse.push(l.status); });
   document.getElementById('f-status').innerHTML = statusesInUse.map(s => '<option value="'+esc(s)+'">'+esc(s)+'</option>').join('');
 }
+function toggleMotivoPerda(){
+  const isPerdido = document.getElementById('f-status').value === 'Perdido';
+  document.getElementById('wrap-motivo-perda').style.display = isPerdido ? 'block' : 'none';
+}
+document.getElementById('f-status').addEventListener('change', toggleMotivoPerda);
 
 function openLead(id){
   const l = currentLeads.find(x => x.id === id);
   if(!l) return;
   activeLeadId = id;
   document.getElementById('modal-title').textContent = l.nome;
-  document.getElementById('modal-sub').textContent = 'Lead desde ' + (l.criadoEm ? formatDateFull(l.criadoEm) : '—');
+  document.getElementById('modal-sub').textContent = l.status === 'Perdido' && l.motivoPerda
+    ? 'Perdido: ' + l.motivoPerda
+    : 'Lead desde ' + (l.criadoEm ? formatDateFull(l.criadoEm) : '—');
   fillStatusSelect();
   document.getElementById('f-nome').value = l.nome || '';
   document.getElementById('f-telefone').value = l.telefone || '';
@@ -795,6 +935,9 @@ function openLead(id){
   document.getElementById('f-imovel').value = l.imovel || '';
   document.getElementById('f-link').value = l.link || '';
   document.getElementById('f-obs').value = l.observacoes || '';
+  document.getElementById('f-motivo-perda').value = l.motivoPerda || '';
+  document.getElementById('f-motivo-perda-obs').value = l.motivoPerdaObs || '';
+  toggleMotivoPerda();
   document.getElementById('hist-data').value = todayStr();
   renderHistorico(l.historico || []);
   document.getElementById('btn-delete-lead').style.display = 'inline-block';
@@ -817,6 +960,9 @@ function openNewLead(grupo){
   document.getElementById('f-imovel').value = '';
   document.getElementById('f-link').value = '';
   document.getElementById('f-obs').value = '';
+  document.getElementById('f-motivo-perda').value = '';
+  document.getElementById('f-motivo-perda-obs').value = '';
+  toggleMotivoPerda();
   document.getElementById('hist-data').value = todayStr();
   renderHistorico([]);
   document.getElementById('btn-delete-lead').style.display = 'none';
@@ -832,28 +978,7 @@ overlay.addEventListener('click', function(e){ if(e.target === overlay) closeMod
 let pendingHistorico = [];
 function renderHistorico(hist){
   pendingHistorico = (hist||[]).slice().sort((a,b)=> b.data.localeCompare(a.data));
-  const el = document.getElementById('hist-list');
-  if(pendingHistorico.length === 0){
-    el.innerHTML = '<div class="empty-msg" style="padding:14px 0">Nenhum contato registrado ainda.</div>';
-    return;
-  }
-  el.innerHTML = pendingHistorico.map(function(h, i){
-    return '<div class="hist-item">' +
-      '<div class="hist-dot"></div>' +
-      '<div style="flex:1">' +
-        '<span class="hist-date">' + formatDateFull(h.data) + '</span>' +
-        '<span class="hist-type">' + esc(h.tipo||'Outro') + '</span>' +
-        '<div class="hist-note">' + esc(h.nota||'') + '</div>' +
-      '</div>' +
-      '<button class="hist-del" data-idx="' + i + '">remover</button>' +
-    '</div>';
-  }).join('');
-  el.querySelectorAll('.hist-del').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      pendingHistorico.splice(parseInt(btn.dataset.idx), 1);
-      renderHistoricoFromState();
-    });
-  });
+  renderHistoricoFromState();
 }
 function renderHistoricoFromState(){
   const el = document.getElementById('hist-list');
@@ -873,14 +998,22 @@ function renderHistoricoFromState(){
     '</div>';
   }).join('');
   el.querySelectorAll('.hist-del').forEach(function(btn){
-    btn.addEventListener('click', function(){
+    btn.addEventListener('click', async function(){
       pendingHistorico.splice(parseInt(btn.dataset.idx), 1);
       renderHistoricoFromState();
+      if(activeLeadId){
+        const ultimoContato = pendingHistorico.length ? pendingHistorico.map(h=>h.data).sort().slice(-1)[0] : '';
+        try{
+          await db.collection('leads').doc(activeLeadId).update({historico: pendingHistorico, ultimoContato: ultimoContato});
+        }catch(e){
+          showToast('Erro ao remover: ' + e.message);
+        }
+      }
     });
   });
 }
 
-document.getElementById('hist-add').addEventListener('click', function(){
+document.getElementById('hist-add').addEventListener('click', async function(){
   const data = document.getElementById('hist-data').value || todayStr();
   const tipo = document.getElementById('hist-tipo').value;
   const nota = document.getElementById('hist-nota').value.trim();
@@ -889,21 +1022,50 @@ document.getElementById('hist-add').addEventListener('click', function(){
   pendingHistorico.sort((a,b)=> b.data.localeCompare(a.data));
   document.getElementById('hist-nota').value = '';
   renderHistoricoFromState();
+
+  // Salva a interação direto no banco (não depende do botão "Salvar" do
+  // card inteiro) — assim o contato fica registrado mesmo se você fechar
+  // o modal em seguida sem salvar o resto.
+  if(activeLeadId){
+    const ultimoContato = pendingHistorico.map(h=>h.data).sort().slice(-1)[0];
+    try{
+      await db.collection('leads').doc(activeLeadId).update({
+        historico: pendingHistorico,
+        ultimoContato: ultimoContato,
+        followupAutomatico: false
+      });
+      showToast('Contato registrado.');
+    }catch(e){
+      showToast('Erro ao salvar contato: ' + e.message);
+    }
+  } else {
+    showToast('Contato adicionado — clique em "Salvar" para criar o lead.');
+  }
 });
 
 document.getElementById('btn-save-lead').addEventListener('click', async function(){
   const nome = document.getElementById('f-nome').value.trim();
   if(!nome){ showToast('O nome do lead é obrigatório.'); return; }
+  const status = document.getElementById('f-status').value;
+  const motivoPerda = document.getElementById('f-motivo-perda').value;
+  if(status === 'Perdido' && !motivoPerda){
+    showToast('Selecione o motivo da perda antes de salvar.');
+    return;
+  }
   const ultimoContato = pendingHistorico.length ? pendingHistorico.map(h=>h.data).sort().slice(-1)[0] : '';
+  const followupValue = document.getElementById('f-followup').value;
   const payload = {
     nome: nome,
     telefone: document.getElementById('f-telefone').value.trim(),
     tipo: document.getElementById('f-tipo').value,
-    status: document.getElementById('f-status').value,
+    status: status,
     prioridade: document.getElementById('f-prioridade').value,
     temperatura: document.getElementById('f-temperatura').value,
     valor: document.getElementById('f-valor').value.trim(),
-    proximoFollowup: document.getElementById('f-followup').value,
+    proximoFollowup: followupValue,
+    followupAutomatico: false,
+    motivoPerda: status === 'Perdido' ? motivoPerda : '',
+    motivoPerdaObs: status === 'Perdido' ? document.getElementById('f-motivo-perda-obs').value.trim() : '',
     imovel: document.getElementById('f-imovel').value.trim(),
     link: document.getElementById('f-link').value.trim(),
     observacoes: document.getElementById('f-obs').value.trim(),
