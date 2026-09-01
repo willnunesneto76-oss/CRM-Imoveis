@@ -152,6 +152,16 @@
   .empty-msg{padding:26px 20px;color:var(--ink-soft);font-size:13.5px;text-align:center;}
 
   /* ---------- Kanban ---------- */
+  .kanban-tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .ktab{
+    padding:9px 16px;border-radius:9px;border:1.5px solid var(--line);background:var(--white);
+    font-size:14px;font-weight:700;color:var(--ink-soft);display:flex;align-items:center;gap:8px;
+  }
+  .ktab-count{background:var(--paper-2);color:var(--ink-soft);font-size:11.5px;padding:1px 8px;border-radius:20px;font-weight:700;}
+  .ktab.active{border-color:var(--blueprint);color:var(--blueprint);background:#EDF1F7;}
+  .ktab.active .ktab-count{background:var(--blueprint);color:var(--white);}
+  .ktab[data-tab="captacao"].active{border-color:var(--brick);color:var(--brick);background:var(--brick-soft);}
+  .ktab[data-tab="captacao"].active .ktab-count{background:var(--brick);color:var(--white);}
   #kanban-board{display:flex;gap:14px;overflow-x:auto;padding-bottom:10px;align-items:flex-start;}
   .kcol{background:var(--paper-2);border-radius:var(--radius);min-width:260px;max-width:260px;flex:none;display:flex;flex-direction:column;max-height:calc(100vh - 190px);}
   .kcol-head{padding:13px 14px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;}
@@ -160,13 +170,20 @@
   .kcol-body{padding:0 10px 10px;overflow-y:auto;flex:1;min-height:40px;}
   .kcol-body.dragover{background:rgba(40,64,94,.08);border-radius:8px;}
   .kcard{
-    background:var(--white);border-radius:8px;padding:12px 13px;margin-bottom:9px;
-    box-shadow:0 1px 2px rgba(27,34,48,.08);cursor:grab;border-left:3px solid var(--line);
+    background:var(--white);border-radius:9px;padding:12px 13px 11px;margin-bottom:9px;
+    box-shadow:0 1px 2px rgba(27,34,48,.08);cursor:grab;border-top:4px solid var(--line);
   }
   .kcard:active{cursor:grabbing;}
   .kcard.dragging{opacity:.4;}
-  .kcard.alta{border-left-color:var(--brick);}
-  .kcard.baixa{border-left-color:var(--sage);}
+  .kcard.grupo-compra{border-top-color:var(--blueprint);}
+  .kcard.grupo-captacao{border-top-color:var(--brick);}
+  .kcard .kbadge{
+    display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;
+    padding:2px 8px;border-radius:20px;margin-bottom:7px;
+  }
+  .kcard.grupo-compra .kbadge{background:#EDF1F7;color:var(--blueprint);}
+  .kcard.grupo-captacao .kbadge{background:var(--brick-soft);color:var(--brick);}
+  .kcard .kprio{float:right;font-size:12px;}
   .kcard .kname{font-weight:600;font-size:14px;margin-bottom:3px;}
   .kcard .ktype{font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;}
   .kcard .kval{font-size:12.5px;font-weight:600;color:var(--blueprint);}
@@ -307,6 +324,10 @@
         <div><h1>Kanban de leads</h1><p>Arraste o cartão para mudar o status do lead.</p></div>
         <button class="btn btn-accent" id="btn-new-lead-2">+ Novo lead</button>
       </div>
+      <div class="kanban-tabs">
+        <button class="ktab active" data-tab="compra" id="ktab-compra">🏠 Compra <span class="ktab-count" id="ktab-count-compra">0</span></button>
+        <button class="ktab" data-tab="captacao" id="ktab-captacao">🔑 Captação <span class="ktab-count" id="ktab-count-captacao">0</span></button>
+      </div>
       <div id="kanban-board"></div>
     </section>
 
@@ -413,9 +434,28 @@ const db = firebase.firestore();
 
 const STATUS_LIST = [
   "Novo Lead","Em contato","Qualificado","Aguardando Resposta","Em Follow-up",
-  "Visita Agendada","Proposta","Negociação","Venda","Alugou","Já vendeu",
+  "Visita Agendada","Proposta","Negociação","Venda","Alugou","Captado","Já vendeu",
   "Desistiu de vender","Pós Venda","Perdido"
 ];
+
+/* Colunas específicas por tipo de operação — mantém os dois fluxos
+   claramente separados (Compra = venda de imóvel pro cliente;
+   Captação = tentativa de captar imóvel de um proprietário). */
+const STATUS_COMPRA = [
+  "Novo Lead","Em contato","Aguardando Resposta","Qualificado",
+  "Visita Agendada","Proposta","Negociação","Venda","Alugou",
+  "Pós Venda","Perdido"
+];
+const STATUS_CAPTACAO = [
+  "Novo Lead","Em contato","Aguardando Resposta","Em Follow-up",
+  "Visita Agendada","Captado","Já vendeu","Desistiu de vender","Perdido"
+];
+const TIPOS_COMPRA = ["Compra","Aluguel","Locação"];
+const TIPOS_CAPTACAO = ["Captação","Venda"];
+function grupoDoTipo(tipo){
+  return TIPOS_CAPTACAO.indexOf(tipo) >= 0 ? 'captacao' : 'compra';
+}
+let kanbanTab = 'compra';
 
 const SEED_LEADS = [{"dataEntrada": "2026-08-25", "nome": "Charles", "telefone": "11 96650-6794", "tipo": "Compra", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-25", "nome": "Adison", "telefone": "19 97407-7914", "tipo": "Compra", "valor": 638000.0, "imovel": "AP 3 quartos Princesa Doeste Campinas", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.chavesnamao.com.br/imovel/apartamento-a-venda-3-quartos-com-garagem-sp-campinas-jardim-proenca-143m2-RS638000/id-20692474/?utm_source=chatgpt.com", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Liang Lee Da Silva", "telefone": "19 97406-9065", "tipo": "Captação", "valor": "", "imovel": "", "status": "Já vendeu", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Tiago Jose Benini Mastracouzo", "telefone": "11955776358 16992452545", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Ricardo Fabricio", "telefone": "19 99111-6090", "tipo": "Captação", "valor": "", "imovel": "", "status": "Desistiu de vender", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": "Disse que ap não está anunciado"}, {"dataEntrada": "2026-08-26", "nome": "Jose Octavio Vitoriano Martines Penna", "telefone": "12 98168-0487", "tipo": "Captação", "valor": "", "imovel": "", "status": "Já vendeu", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Elisete Aparecida Tezotto", "telefone": "15 99835-9035", "tipo": "Captação", "valor": "", "imovel": "", "status": "Já vendeu", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Heraldo Canto Micheli", "telefone": "19982716793 19992305606", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Paulo Damiao Carvalho Reis", "telefone": "", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-27", "proximoFollowup": null, "diasSemContato": 4, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Heloisa Machado Fleury", "telefone": "19 98140-2091", "tipo": "Captação", "valor": "", "imovel": "", "status": "Já vendeu", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": "Disse que vendeu há 2 anos"}, {"dataEntrada": "2026-08-26", "nome": "Magali Aparecida Lando Cecilio", "telefone": "19997721726 19996051978", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Felipe", "telefone": "11 99388-4762", "tipo": "Compra", "valor": 240000.0, "imovel": "AP 1 quarto Centro", "status": "Visita Agendada", "temperatura": "🔥 Quente", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Fatima", "telefone": "11 98624-8038", "tipo": "Compra", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Erica (curiosidade)", "telefone": "19 98604-4141", "tipo": "Compra", "valor": "", "imovel": "Casa 3 quartos Campos Elíseos", "status": "Perdido", "temperatura": "❄️ Frio", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "Geraldo", "telefone": "19991645798.0", "tipo": "Compra", "valor": 500000.0, "imovel": "Casa 3 quartos Taqueral", "status": "Em contato", "temperatura": "😐 Morno", "ultimoContato": "2026-08-27", "proximoFollowup": null, "diasSemContato": 4, "prioridade": "🟢 Baixa", "link": "https://www.imovelweb.com.br/propriedades/casa-a-venda-taquaral-3-quartos-150-m2-3043865135.html", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "Juliana", "telefone": "19971182229.0", "tipo": "Compra", "valor": 200000.0, "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-vila-palacios-2-quartos-52-m2-3043844488.html", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "Renata", "telefone": "19 98224-3070", "tipo": "Compra", "valor": 290000.0, "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-27", "proximoFollowup": null, "diasSemContato": 4, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "David Alex", "telefone": "19 98907-7026", "tipo": "Compra", "valor": 320000.0, "imovel": "", "status": "Visita Agendada", "temperatura": "🔥 Quente", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "Casa com 2 quartos na Rua Edson Sales de Oliveira, 8, Botafogo, Campinas - SP - ID: 45965465 | Chaves na Mão", "observacoes": "Mora em Americana e está se mudando para Campinas, esposa já mora em campinas"}, {"dataEntrada": "2026-08-27", "nome": "Thalita", "telefone": "19 98391-2208", "tipo": "Compra", "valor": 290000.0, "imovel": "", "status": "Em contato", "temperatura": "😐 Morno", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": "Enviar opções AP 3 quartos Flamboyant"}, {"dataEntrada": "2026-08-27", "nome": "José", "telefone": "19 99741-7120", "tipo": "Compra", "valor": 200000.0, "imovel": "", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-jardim-san-diego-2-quartos-42-3043867253.html", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "Cida", "telefone": "71 9937-9287", "tipo": "Compra", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-jardim-san-diego-2-quartos-42-3043867253.html", "observacoes": ""}, {"dataEntrada": "2026-08-28", "nome": "Camila", "telefone": "19 98183-3610", "tipo": "Compra", "valor": 265000.0, "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-28", "nome": "Rose (Queria sábado)", "telefone": "(19) 98337-2235", "tipo": "Compra", "valor": 290000.0, "imovel": "", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.chavesnamao.com.br/imovel/apartamento-a-venda-2-quartos-com-garagem-sp-campinas-jardim-dos-oliveiras-RS290000/id-45965097/", "observacoes": ""}, {"dataEntrada": "2026-08-28", "nome": "Carlos Martin", "telefone": "19 99782-4435", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-28", "nome": "Oswaldo", "telefone": "11992925775.0", "tipo": "Compra", "valor": 500000.0, "imovel": "Casa Taquaral 3 quartos 150m", "status": "Em Follow-up", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/casa-a-venda-taquaral-3-quartos-150-m2-3043865135.html", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Andre (Número não existe)", "telefone": "11 98748-5637", "tipo": "Compra", "valor": 695000.0, "imovel": "Casa 5 Q PQ Universidades", "status": "Perdido", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Tania (permuta)", "telefone": "19 98293-1369", "tipo": "Compra", "valor": 540000.0, "imovel": "Casa 2Q Jd Interlagos", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Karen", "telefone": "19 99795-6128", "tipo": "Compra", "valor": 266000.0, "imovel": "Casa 3 Q Campos Elíseos", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.chavesnamao.com.br/imovel/casa-a-venda-3-quartos-com-garagem-sp-campinas-jardim-campos-eliseos-RS266000/id-45960681/", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Gabriela", "telefone": "15 99726-7110", "tipo": "Compra", "valor": 240000.0, "imovel": "AP 2 Q Proença", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "sem link", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Monica", "telefone": "19999158612.0", "tipo": "Compra", "valor": "325 / 340 k", "imovel": "Casa Von Zuben 3 Q e 4 Q", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/casa-a-venda-jardim-antonio-von-zuben-3-quartos-80-3043858677.html", "observacoes": "https://www.imovelweb.com.br/propriedades/casa-a-venda-jardim-antonio-von-zuben-4-quartos-3043841267.html"}, {"dataEntrada": "2026-08-31", "nome": "Naldi", "telefone": "19981238560.0", "tipo": "Compra", "valor": 700000.0, "imovel": "AP 3 Q Pq Prado", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Diego", "telefone": "19 97420-9579", "tipo": "Compra", "valor": 290000.0, "imovel": "AP 2 Q VL União", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "sem link", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Gislaine", "telefone": "19993322869.0", "tipo": "Compra", "valor": 360000.0, "imovel": "Ap 2Q Pq Industrial", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-parque-industrial-2-quartos-54-3043860973.html", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Ana Paula", "telefone": "19987056796.0", "tipo": "Compra", "valor": 425000.0, "imovel": "Ap 2 Q Vila Industrial", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-vila-industrial-2-quartos-64-3043841280.html", "observacoes": ""}];
 
@@ -552,10 +592,13 @@ function diasEntre(a,b){
 }
 
 function isFechado(status){
-  return ['Venda','Alugou','Já vendeu'].indexOf(status) >= 0;
+  // Negócio realmente fechado (venda ou aluguel concluído com o cliente).
+  return ['Venda','Alugou','Captado'].indexOf(status) >= 0;
 }
 function isEncerrado(status){
-  return isFechado(status) || ['Desistiu de vender','Perdido'].indexOf(status) >= 0;
+  // "Já vendeu" = tentativa de captação que não vingou (o dono já vendeu
+  // por fora) — conta como perdido, nunca como negócio fechado.
+  return isFechado(status) || ['Desistiu de vender','Perdido','Já vendeu'].indexOf(status) >= 0;
 }
 
 function renderDashboard(){
@@ -630,19 +673,36 @@ function esc(s){
   return (s==null?'':String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 }
 
+document.querySelectorAll('.ktab').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    kanbanTab = btn.dataset.tab;
+    document.querySelectorAll('.ktab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderKanban();
+  });
+});
+
 function renderKanban(){
   const board = document.getElementById('kanban-board');
-  const statusesInUse = STATUS_LIST.slice();
-  currentLeads.forEach(l => { if(statusesInUse.indexOf(l.status) < 0) statusesInUse.push(l.status); });
+  const leadsCompra = currentLeads.filter(l => grupoDoTipo(l.tipo) === 'compra');
+  const leadsCaptacao = currentLeads.filter(l => grupoDoTipo(l.tipo) === 'captacao');
+  document.getElementById('ktab-count-compra').textContent = leadsCompra.length;
+  document.getElementById('ktab-count-captacao').textContent = leadsCaptacao.length;
+
+  const grupo = kanbanTab; // 'compra' | 'captacao'
+  const leadsDoGrupo = grupo === 'compra' ? leadsCompra : leadsCaptacao;
+  const baseStatus = grupo === 'compra' ? STATUS_COMPRA : STATUS_CAPTACAO;
+  const statusesInUse = baseStatus.slice();
+  leadsDoGrupo.forEach(l => { if(statusesInUse.indexOf(l.status) < 0) statusesInUse.push(l.status); });
 
   board.innerHTML = statusesInUse.map(function(status){
-    const leads = currentLeads.filter(l => l.status === status);
+    const leads = leadsDoGrupo.filter(l => l.status === status);
     return '<div class="kcol">' +
       '<div class="kcol-head"><h3>' + esc(status) + '</h3><span class="count">' + leads.length + '</span></div>' +
       '<div class="kcol-body" data-status="' + esc(status) + '">' +
         leads.map(cardHtml).join('') +
       '</div></div>';
-  }).join('') + '<div class="add-lead-col"><button class="add-lead-btn" onclick="openNewLead()">+ Adicionar lead</button></div>';
+  }).join('') + '<div class="add-lead-col"><button class="add-lead-btn" onclick="openNewLead(\'' + grupo + '\')">+ Adicionar lead</button></div>';
 
   document.querySelectorAll('.kcard').forEach(function(card){
     card.addEventListener('dragstart', function(e){
@@ -667,9 +727,12 @@ function renderKanban(){
 }
 
 function cardHtml(l){
-  const prio = (l.prioridade||'').indexOf('Alta') >= 0 ? 'alta' : (l.prioridade||'').indexOf('Baixa') >= 0 ? 'baixa' : '';
+  const grupo = grupoDoTipo(l.tipo);
+  const badge = grupo === 'compra' ? '🏠 Compra' : '🔑 Captação';
   const valor = l.valor ? ('R$ ' + formatMoney(l.valor)) : '';
-  return '<div class="kcard ' + prio + '" draggable="true" data-id="' + l.id + '">' +
+  return '<div class="kcard grupo-' + grupo + '" draggable="true" data-id="' + l.id + '">' +
+    '<span class="kprio">' + (l.prioridade||'').split(' ')[0] + '</span>' +
+    '<div class="kbadge">' + badge + '</div>' +
     '<div class="kname">' + esc(l.nome) + '</div>' +
     '<div class="ktype">' + esc(l.tipo||'') + (l.imovel ? ' · ' + esc(truncate(l.imovel,28)) : '') + '</div>' +
     (valor ? '<div class="kval">' + valor + '</div>' : '') +
@@ -738,14 +801,14 @@ function openLead(id){
   overlay.classList.add('active');
 }
 
-function openNewLead(){
+function openNewLead(grupo){
   activeLeadId = null;
   document.getElementById('modal-title').textContent = 'Novo lead';
   document.getElementById('modal-sub').textContent = 'Preencha os dados do contato';
   fillStatusSelect();
   document.getElementById('f-nome').value = '';
   document.getElementById('f-telefone').value = '';
-  document.getElementById('f-tipo').value = 'Compra';
+  document.getElementById('f-tipo').value = grupo === 'captacao' ? 'Captação' : 'Compra';
   document.getElementById('f-status').value = 'Novo Lead';
   document.getElementById('f-prioridade').value = '🔴 Alta';
   document.getElementById('f-temperatura').value = '';
