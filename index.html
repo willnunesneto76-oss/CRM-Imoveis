@@ -127,7 +127,7 @@
   .btn-danger{color:var(--brick);}
 
   /* ---------- Dashboard ---------- */
-  .stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:30px;}
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:30px;}
   .stat-card{background:var(--white);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);}
   .stat-card .num{font-family:'Fraunces',serif;font-size:30px;font-weight:600;line-height:1;}
   .stat-card .lbl{font-size:12.5px;color:var(--ink-soft);margin-top:6px;font-weight:500;}
@@ -143,6 +143,12 @@
   .call-row.destaque{background:#FFF7D6;border-left:3px solid var(--amber);padding-left:17px;}
   .call-row.destaque:hover{background:#FFF2BE;}
   .destaque-check{width:17px;height:17px;flex:none;cursor:pointer;accent-color:var(--amber);}
+  .comissao-box{background:var(--sage-soft);border-radius:9px;padding:14px 16px;margin-bottom:14px;}
+  .comissao-fifty{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;margin-bottom:10px;}
+  .comissao-fifty input{width:16px;height:16px;accent-color:var(--sage);}
+  .comissao-result{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:13px;color:var(--ink-soft);}
+  .comissao-result strong{font-family:'Fraunces',serif;font-size:20px;color:var(--sage);font-weight:600;}
+  .kcard .kcomissao{font-size:11px;font-weight:700;color:var(--sage);margin-top:4px;}
   .call-row:last-child{border-bottom:none;}
   .call-row:hover{background:var(--paper);cursor:pointer;}
   .call-tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px;white-space:nowrap;}
@@ -254,6 +260,7 @@
     main{padding:20px;}
     .stat-row{grid-template-columns:repeat(2,1fr);}
     .stat-row .stat-card:nth-child(5){grid-column:span 2;}
+    .stat-row .stat-card:nth-child(6){grid-column:span 2;}
     .grid2{grid-template-columns:1fr;}
   }
 </style>
@@ -313,6 +320,7 @@
         <div class="stat-card"><div class="num" id="stat-hoje">0</div><div class="lbl">Agendados para hoje</div></div>
         <div class="stat-card ok"><div class="num" id="stat-vendas">0</div><div class="lbl">🏠 Vendas fechadas (Compra)</div></div>
         <div class="stat-card ok"><div class="num" id="stat-captados">0</div><div class="lbl">🔑 Imóveis captados</div></div>
+        <div class="stat-card" style="background:var(--sage-soft)"><div class="num" id="stat-comissao" style="color:var(--sage)">R$ 0</div><div class="lbl">💰 Comissão gerada (negócios fechados)</div></div>
       </div>
 
       <div class="panel">
@@ -398,6 +406,18 @@
       </div>
       <div class="field-sm"><label>Imóvel de interesse</label><input id="f-imovel"></div>
       <div class="field-sm"><label>Link do anúncio</label><input id="f-link"></div>
+
+      <div class="section-title" style="margin-top:14px">Comissão</div>
+      <div class="comissao-box">
+        <label class="comissao-fifty">
+          <input type="checkbox" id="f-fifty"> Comissão fifty (dividida com outro corretor/imobiliária)
+        </label>
+        <div class="comissao-result">
+          <span>Comissão estimada (<span id="comissao-pct">40%</span> sobre 6% do valor do imóvel):</span>
+          <strong id="comissao-valor">R$ 0,00</strong>
+        </div>
+      </div>
+
       <div class="field-sm"><label>Observações gerais</label><textarea id="f-obs"></textarea></div>
 
       <div class="field-sm" id="wrap-motivo-perda" style="display:none">
@@ -707,6 +727,10 @@ function renderDashboard(){
   document.getElementById('stat-total').textContent = ativos.length;
   document.getElementById('stat-vendas').textContent = currentLeads.filter(l => l.status === 'Venda').length;
   document.getElementById('stat-captados').textContent = currentLeads.filter(l => l.status === 'Captado').length;
+  const comissaoTotal = currentLeads
+    .filter(l => isFechado(l.status))
+    .reduce((soma, l) => soma + (l.comissao || calcularComissao(l.valor, l.fifty)), 0);
+  document.getElementById('stat-comissao').textContent = formatBRL(comissaoTotal);
 
   const comFollowup = currentLeads.filter(l => l.proximoFollowup && !isEncerrado(l.status));
   const atrasados = comFollowup.filter(l => l.proximoFollowup < hoje);
@@ -892,6 +916,7 @@ function cardHtml(l){
     '<div class="kname">' + esc(l.nome) + '</div>' +
     '<div class="ktype">' + esc(l.tipo||'') + (l.imovel ? ' · ' + esc(truncate(l.imovel,28)) : '') + '</div>' +
     (valor ? '<div class="kval">' + valor + '</div>' : '') +
+    (l.comissao ? '<div class="kcomissao">💰 comissão ' + formatBRL(l.comissao) + (l.fifty ? ' (fifty)' : '') + '</div>' : '') +
     '<div class="kmeta">' +
       (l.telefone ? '<span>📞 ' + esc(l.telefone) + '</span>' : '') +
       (l.proximoFollowup ? '<span style="margin-left:auto">🗓 ' + formatDate(l.proximoFollowup) + '</span>' : '') +
@@ -903,6 +928,28 @@ function formatMoney(v){
   if(isNaN(num)) return v;
   return num.toLocaleString('pt-BR');
 }
+
+/* Comissão padrão: 6% do valor do imóvel, e dessa fatia 40% é a comissão
+   do corretor (ou 20% se a venda for "fifty", dividida). */
+function calcularComissao(valor, fifty){
+  const num = parseFloat(String(valor||'').replace(/[^\d.,]/g,'').replace(',','.'));
+  if(isNaN(num) || num <= 0) return 0;
+  const seisPorcento = num * 0.06;
+  const pct = fifty ? 0.20 : 0.40;
+  return seisPorcento * pct;
+}
+function formatBRL(num){
+  return 'R$ ' + num.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function atualizarComissaoModal(){
+  const valor = document.getElementById('f-valor').value;
+  const fifty = document.getElementById('f-fifty').checked;
+  const comissao = calcularComissao(valor, fifty);
+  document.getElementById('comissao-pct').textContent = fifty ? '20%' : '40%';
+  document.getElementById('comissao-valor').textContent = formatBRL(comissao);
+}
+document.getElementById('f-valor').addEventListener('input', atualizarComissaoModal);
+document.getElementById('f-fifty').addEventListener('change', atualizarComissaoModal);
 
 function renderLista(){
   const q = (document.getElementById('lista-search').value || '').toLowerCase();
@@ -977,6 +1024,7 @@ function openLead(id){
   document.getElementById('f-prioridade').value = l.prioridade || '🔴 Alta';
   document.getElementById('f-temperatura').value = l.temperatura || '';
   document.getElementById('f-valor').value = l.valor || '';
+  document.getElementById('f-fifty').checked = !!l.fifty;
   document.getElementById('f-followup').value = l.proximoFollowup || '';
   document.getElementById('f-imovel').value = l.imovel || '';
   document.getElementById('f-link').value = l.link || '';
@@ -984,6 +1032,7 @@ function openLead(id){
   document.getElementById('f-motivo-perda').value = l.motivoPerda || '';
   document.getElementById('f-motivo-perda-obs').value = l.motivoPerdaObs || '';
   toggleMotivoPerda();
+  atualizarComissaoModal();
   document.getElementById('hist-data').value = todayStr();
   renderHistorico(l.historico || []);
   document.getElementById('btn-delete-lead').style.display = 'inline-block';
@@ -1002,6 +1051,7 @@ function openNewLead(grupo){
   document.getElementById('f-prioridade').value = '🔴 Alta';
   document.getElementById('f-temperatura').value = '';
   document.getElementById('f-valor').value = '';
+  document.getElementById('f-fifty').checked = false;
   document.getElementById('f-followup').value = '';
   document.getElementById('f-imovel').value = '';
   document.getElementById('f-link').value = '';
@@ -1009,6 +1059,7 @@ function openNewLead(grupo){
   document.getElementById('f-motivo-perda').value = '';
   document.getElementById('f-motivo-perda-obs').value = '';
   toggleMotivoPerda();
+  atualizarComissaoModal();
   document.getElementById('hist-data').value = todayStr();
   renderHistorico([]);
   document.getElementById('btn-delete-lead').style.display = 'none';
@@ -1108,6 +1159,8 @@ document.getElementById('btn-save-lead').addEventListener('click', async functio
     prioridade: document.getElementById('f-prioridade').value,
     temperatura: document.getElementById('f-temperatura').value,
     valor: document.getElementById('f-valor').value.trim(),
+    fifty: document.getElementById('f-fifty').checked,
+    comissao: calcularComissao(document.getElementById('f-valor').value, document.getElementById('f-fifty').checked),
     proximoFollowup: followupValue,
     followupAutomatico: false,
     motivoPerda: status === 'Perdido' ? motivoPerda : '',
