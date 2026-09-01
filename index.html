@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Leads — Imobiliária</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2230;
+    --ink-soft:#4A5468;
+    --paper:#F4F1E9;
+    --paper-2:#EAE5D8;
+    --line:#D9D2C0;
+    --blueprint:#28405E;
+    --blueprint-2:#1A2C44;
+    --brick:#A8462E;
+    --brick-soft:#F1DDD3;
+    --sage:#5F7A5A;
+    --sage-soft:#E1E9DC;
+    --amber:#B98325;
+    --amber-soft:#F3E5C4;
+    --white:#FFFDF8;
+    --radius:10px;
+    --shadow:0 1px 2px rgba(27,34,48,.06), 0 6px 20px rgba(27,34,48,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+  }
+  h1,h2,h3,.display{font-family:'Fraunces',serif;}
+  a{color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+
+  /* ---------- Login ---------- */
+  #login-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:
+      linear-gradient(var(--blueprint-2), var(--blueprint-2)),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, transparent 1px 32px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.045) 0 1px, transparent 1px 32px);
+  }
+  .login-card{
+    background:var(--white);
+    width:380px;
+    max-width:90vw;
+    padding:40px 36px 32px;
+    border-radius:14px;
+    box-shadow:0 20px 60px rgba(0,0,0,.35);
+  }
+  .login-mark{
+    width:44px;height:44px;border-radius:9px;
+    background:var(--brick);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--white);font-family:'Fraunces',serif;font-weight:700;font-size:20px;
+    margin-bottom:18px;
+  }
+  .login-card h1{font-size:24px;margin:0 0 4px;font-weight:600;}
+  .login-card p.sub{margin:0 0 24px;color:var(--ink-soft);font-size:14px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;font-weight:500;}
+  .field input{
+    width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:8px;
+    font-size:14.5px;background:var(--paper);color:var(--ink);
+  }
+  .field input:focus{outline:none;border-color:var(--blueprint);background:var(--white);}
+  .btn-primary{
+    width:100%;padding:12px;border:none;border-radius:8px;
+    background:var(--blueprint);color:var(--white);font-size:15px;font-weight:600;
+    margin-top:6px;
+  }
+  .btn-primary:hover{background:var(--blueprint-2);}
+  .btn-primary:disabled{opacity:.55;cursor:default;}
+  #login-error{color:var(--brick);font-size:13px;margin-top:12px;min-height:16px;}
+  .login-foot{margin-top:20px;font-size:12px;color:var(--ink-soft);line-height:1.5;}
+
+  /* ---------- App shell ---------- */
+  #app{display:none;min-height:100vh;grid-template-columns:220px 1fr;}
+  #app.active{display:grid;}
+  aside{
+    background:var(--blueprint-2);
+    color:#DCE3EE;
+    padding:22px 16px;
+    position:sticky;top:0;height:100vh;
+    display:flex;flex-direction:column;
+  }
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:28px;padding:0 6px;}
+  .brand .mark{width:30px;height:30px;border-radius:7px;background:var(--brick);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;color:var(--white);font-size:14px;flex:none;}
+  .brand span{font-family:'Fraunces',serif;font-size:16.5px;font-weight:600;color:var(--white);}
+  nav{display:flex;flex-direction:column;gap:3px;flex:1;}
+  nav button{
+    display:flex;align-items:center;gap:10px;
+    background:none;border:none;color:#C6CFE0;text-align:left;
+    padding:10px 12px;border-radius:8px;font-size:14px;font-weight:500;
+  }
+  nav button:hover{background:rgba(255,255,255,.06);color:var(--white);}
+  nav button.active{background:var(--brick);color:var(--white);}
+  nav button .ic{width:18px;text-align:center;font-size:15px;}
+  .side-foot{font-size:12px;color:#8A96AC;padding:10px 6px 0;border-top:1px solid rgba(255,255,255,.1);margin-top:10px;}
+  .side-foot button{background:none;border:none;color:#C6CFE0;font-size:12.5px;padding:8px 0 0;text-decoration:underline;}
+
+  main{padding:30px 36px 60px;max-width:1280px;}
+  .page{display:none;}
+  .page.active{display:block;}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px;}
+  .page-head h1{font-size:26px;margin:0 0 4px;font-weight:600;}
+  .page-head p{margin:0;color:var(--ink-soft);font-size:14px;}
+
+  .btn{
+    padding:9px 16px;border-radius:8px;border:1.5px solid var(--line);
+    background:var(--white);color:var(--ink);font-size:13.5px;font-weight:600;
+  }
+  .btn:hover{border-color:var(--ink-soft);}
+  .btn-accent{background:var(--brick);border-color:var(--brick);color:var(--white);}
+  .btn-accent:hover{background:#8f3a26;}
+  .btn-ghost{border-color:transparent;background:transparent;}
+  .btn-ghost:hover{background:var(--paper-2);}
+  .btn-danger{color:var(--brick);}
+
+  /* ---------- Dashboard ---------- */
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:30px;}
+  .stat-card{background:var(--white);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);}
+  .stat-card .num{font-family:'Fraunces',serif;font-size:30px;font-weight:600;line-height:1;}
+  .stat-card .lbl{font-size:12.5px;color:var(--ink-soft);margin-top:6px;font-weight:500;}
+  .stat-card.warn .num{color:var(--brick);}
+  .stat-card.ok .num{color:var(--sage);}
+
+  .panel{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:24px;overflow:hidden;}
+  .panel-head{padding:16px 20px;border-bottom:1px solid var(--paper-2);display:flex;align-items:center;justify-content:space-between;}
+  .panel-head h2{margin:0;font-size:16px;font-weight:600;}
+  .panel-head .count{font-size:12px;background:var(--paper-2);padding:2px 9px;border-radius:20px;color:var(--ink-soft);font-weight:600;}
+
+  .call-row{display:flex;align-items:center;gap:14px;padding:13px 20px;border-bottom:1px solid var(--paper-2);}
+  .call-row:last-child{border-bottom:none;}
+  .call-row:hover{background:var(--paper);cursor:pointer;}
+  .call-tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px;white-space:nowrap;}
+  .call-tag.hoje{background:var(--amber-soft);color:#8A5F16;}
+  .call-tag.atrasado{background:var(--brick-soft);color:var(--brick);}
+  .call-tag.futuro{background:var(--sage-soft);color:var(--sage);}
+  .call-name{font-weight:600;font-size:14.5px;flex:1;min-width:120px;}
+  .call-meta{font-size:12.5px;color:var(--ink-soft);}
+  .call-date{font-size:12.5px;color:var(--ink-soft);white-space:nowrap;}
+  .empty-msg{padding:26px 20px;color:var(--ink-soft);font-size:13.5px;text-align:center;}
+
+  /* ---------- Kanban ---------- */
+  #kanban-board{display:flex;gap:14px;overflow-x:auto;padding-bottom:10px;align-items:flex-start;}
+  .kcol{background:var(--paper-2);border-radius:var(--radius);min-width:260px;max-width:260px;flex:none;display:flex;flex-direction:column;max-height:calc(100vh - 190px);}
+  .kcol-head{padding:13px 14px 10px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;}
+  .kcol-head h3{margin:0;font-size:13.5px;font-weight:700;}
+  .kcol-head .count{font-size:11.5px;background:rgba(0,0,0,.07);padding:1px 8px;border-radius:20px;color:var(--ink-soft);}
+  .kcol-body{padding:0 10px 10px;overflow-y:auto;flex:1;min-height:40px;}
+  .kcol-body.dragover{background:rgba(40,64,94,.08);border-radius:8px;}
+  .kcard{
+    background:var(--white);border-radius:8px;padding:12px 13px;margin-bottom:9px;
+    box-shadow:0 1px 2px rgba(27,34,48,.08);cursor:grab;border-left:3px solid var(--line);
+  }
+  .kcard:active{cursor:grabbing;}
+  .kcard.dragging{opacity:.4;}
+  .kcard.alta{border-left-color:var(--brick);}
+  .kcard.baixa{border-left-color:var(--sage);}
+  .kcard .kname{font-weight:600;font-size:14px;margin-bottom:3px;}
+  .kcard .ktype{font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;}
+  .kcard .kval{font-size:12.5px;font-weight:600;color:var(--blueprint);}
+  .kcard .kmeta{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--ink-soft);}
+  .add-lead-col{min-width:210px;max-width:210px;flex:none;}
+  .add-lead-btn{
+    width:100%;padding:12px;border-radius:var(--radius);border:1.5px dashed var(--line);
+    background:transparent;color:var(--ink-soft);font-size:13.5px;font-weight:600;
+  }
+  .add-lead-btn:hover{border-color:var(--blueprint);color:var(--blueprint);}
+
+  /* ---------- Modal ---------- */
+  .overlay{
+    display:none;position:fixed;inset:0;background:rgba(20,24,34,.5);
+    align-items:flex-start;justify-content:center;z-index:100;padding:40px 20px;overflow-y:auto;
+  }
+  .overlay.active{display:flex;}
+  .modal{background:var(--white);border-radius:14px;width:560px;max-width:100%;box-shadow:0 30px 80px rgba(0,0,0,.35);}
+  .modal-head{padding:22px 26px 16px;border-bottom:1px solid var(--paper-2);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .modal-head h2{margin:0 0 4px;font-size:20px;font-weight:600;}
+  .modal-head .modal-sub{font-size:13px;color:var(--ink-soft);}
+  .modal-close{background:none;border:none;font-size:20px;color:var(--ink-soft);line-height:1;padding:4px;}
+  .modal-body{padding:20px 26px;}
+  .modal-foot{padding:16px 26px 24px;display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--paper-2);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .field-sm{margin-bottom:12px;}
+  .field-sm label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;font-weight:600;}
+  .field-sm input,.field-sm select,.field-sm textarea{
+    width:100%;padding:9px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13.5px;background:var(--paper);
+  }
+  .field-sm textarea{resize:vertical;min-height:52px;}
+  .field-sm input:focus,.field-sm select:focus,.field-sm textarea:focus{outline:none;border-color:var(--blueprint);background:var(--white);}
+  .section-title{font-size:13px;font-weight:700;margin:22px 0 10px;color:var(--ink);display:flex;align-items:center;justify-content:space-between;}
+
+  .hist-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--paper-2);}
+  .hist-item:last-child{border-bottom:none;}
+  .hist-dot{width:8px;height:8px;border-radius:50%;background:var(--blueprint);margin-top:6px;flex:none;}
+  .hist-date{font-size:11.5px;color:var(--ink-soft);font-weight:600;}
+  .hist-type{font-size:11px;background:var(--paper-2);padding:1px 7px;border-radius:5px;margin-left:6px;color:var(--ink-soft);}
+  .hist-note{font-size:13px;margin-top:3px;}
+  .hist-del{background:none;border:none;color:var(--ink-soft);font-size:12px;margin-left:auto;flex:none;align-self:flex-start;}
+  .hist-del:hover{color:var(--brick);}
+  .add-contact-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .add-contact-row select,.add-contact-row input[type=date]{padding:8px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;background:var(--paper);}
+  .add-contact-row textarea{flex:1;min-width:160px;padding:8px 10px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;background:var(--paper);resize:vertical;min-height:38px;}
+
+  #toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:var(--white);padding:11px 20px;border-radius:8px;
+    font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
+
+  #loading-app{position:fixed;inset:0;background:var(--paper);display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:14px;z-index:5;}
+
+  @media (max-width: 900px){
+    #app.active{grid-template-columns:1fr;}
+    aside{position:relative;height:auto;flex-direction:row;align-items:center;padding:14px 16px;}
+    .brand{margin-bottom:0;}
+    nav{flex-direction:row;overflow-x:auto;}
+    .side-foot{display:none;}
+    main{padding:20px;}
+    .stat-row{grid-template-columns:repeat(2,1fr);}
+    .grid2{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-mark">IM</div>
+    <h1>Painel de Leads</h1>
+    <p class="sub">Acesso restrito à equipe da imobiliária.</p>
+    <form id="login-form">
+      <div class="field">
+        <label for="login-email">E-mail</label>
+        <input type="email" id="login-email" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="login-pass">Senha</label>
+        <input type="password" id="login-pass" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn-primary" id="login-btn">Entrar</button>
+      <div id="login-error"></div>
+    </form>
+    <div class="login-foot">
+      Configure o <code>firebaseConfig</code> no arquivo antes de publicar, e crie o usuário master no console do Firebase Authentication (E-mail/Senha). Veja o comentário no topo do &lt;script&gt;.
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <aside>
+    <div class="brand"><div class="mark">IM</div><span>Leads</span></div>
+    <nav>
+      <button class="nav-btn active" data-page="dashboard"><span class="ic">◧</span> Painel</button>
+      <button class="nav-btn" data-page="kanban"><span class="ic">▤</span> Kanban</button>
+      <button class="nav-btn" data-page="lista"><span class="ic">≡</span> Todos os leads</button>
+    </nav>
+    <div class="side-foot">
+      Conectado como<br><strong id="user-email-label" style="color:#fff"></strong>
+      <button id="logout-btn">Sair</button>
+    </div>
+  </aside>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section class="page active" id="page-dashboard">
+      <div class="page-head">
+        <div><h1>Painel do dia</h1><p>Chamadas e follow-ups que precisam da sua atenção agora.</p></div>
+        <button class="btn btn-accent" id="btn-new-lead-1">+ Novo lead</button>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card"><div class="num" id="stat-total">0</div><div class="lbl">Leads ativos</div></div>
+        <div class="stat-card warn"><div class="num" id="stat-atrasados">0</div><div class="lbl">Follow-ups atrasados</div></div>
+        <div class="stat-card"><div class="num" id="stat-hoje">0</div><div class="lbl">Agendados para hoje</div></div>
+        <div class="stat-card ok"><div class="num" id="stat-fechados">0</div><div class="lbl">Fechados (venda/aluguel)</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Chamadas e follow-ups pendentes</h2><span class="count" id="pend-count">0</span></div>
+        <div id="pend-list"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Sem contato há mais tempo</h2><span class="count" id="stale-count">0</span></div>
+        <div id="stale-list"></div>
+      </div>
+    </section>
+
+    <!-- KANBAN -->
+    <section class="page" id="page-kanban">
+      <div class="page-head">
+        <div><h1>Kanban de leads</h1><p>Arraste o cartão para mudar o status do lead.</p></div>
+        <button class="btn btn-accent" id="btn-new-lead-2">+ Novo lead</button>
+      </div>
+      <div id="kanban-board"></div>
+    </section>
+
+    <!-- LISTA -->
+    <section class="page" id="page-lista">
+      <div class="page-head">
+        <div><h1>Todos os leads</h1><p id="lista-sub">0 leads no total.</p></div>
+        <input type="text" id="lista-search" placeholder="Buscar por nome ou telefone…" style="padding:9px 14px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;min-width:230px;">
+      </div>
+      <div class="panel"><div id="lista-table"></div></div>
+    </section>
+  </main>
+</div>
+
+<div id="loading-app">Carregando…</div>
+
+<!-- ============ MODAL LEAD ============ -->
+<div class="overlay" id="lead-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2 id="modal-title">Lead</h2>
+        <div class="modal-sub" id="modal-sub">—</div>
+      </div>
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid2">
+        <div class="field-sm"><label>Nome</label><input id="f-nome"></div>
+        <div class="field-sm"><label>Telefone</label><input id="f-telefone"></div>
+        <div class="field-sm"><label>Tipo</label>
+          <select id="f-tipo"><option>Compra</option><option>Captação</option><option>Venda</option><option>Aluguel</option><option>Locação</option></select>
+        </div>
+        <div class="field-sm"><label>Status</label><select id="f-status"></select></div>
+        <div class="field-sm"><label>Prioridade</label>
+          <select id="f-prioridade"><option value="🔴 Alta">🔴 Alta</option><option value="🟡 Média">🟡 Média</option><option value="🟢 Baixa">🟢 Baixa</option></select>
+        </div>
+        <div class="field-sm"><label>Temperatura</label>
+          <select id="f-temperatura"><option value="">—</option><option value="🔥 Quente">🔥 Quente</option><option value="😐 Morno">😐 Morno</option><option value="❄️ Frio">❄️ Frio</option></select>
+        </div>
+        <div class="field-sm"><label>Valor (R$)</label><input id="f-valor" placeholder="ex: 350000"></div>
+        <div class="field-sm"><label>Próximo follow-up</label><input type="date" id="f-followup"></div>
+      </div>
+      <div class="field-sm"><label>Imóvel de interesse</label><input id="f-imovel"></div>
+      <div class="field-sm"><label>Link do anúncio</label><input id="f-link"></div>
+      <div class="field-sm"><label>Observações gerais</label><textarea id="f-obs"></textarea></div>
+
+      <div class="section-title">Histórico de contato</div>
+      <div id="hist-list"></div>
+      <div class="add-contact-row">
+        <input type="date" id="hist-data">
+        <select id="hist-tipo"><option>Ligação</option><option>WhatsApp</option><option>Visita</option><option>E-mail</option><option>Outro</option></select>
+        <textarea id="hist-nota" placeholder="O que foi conversado…"></textarea>
+        <button class="btn" id="hist-add">Adicionar</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="btn-delete-lead">Excluir lead</button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn" id="btn-cancel-lead">Cancelar</button>
+        <button class="btn btn-accent" id="btn-save-lead">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+/* =====================================================================
+   CONFIGURAÇÃO DO FIREBASE — PREENCHA ANTES DE PUBLICAR
+   1. Crie um projeto em https://console.firebase.google.com
+   2. Ative "Authentication" > método "E-mail/senha"
+   3. Crie manualmente o usuário master (aba Users > Add user):
+        e-mail:  sequeagora@gmail.com
+        senha:   (defina no console — NÃO deixe a senha escrita em texto
+                  no código, por segurança, já que este arquivo pode ficar
+                  público no GitHub)
+   4. Ative o "Firestore Database" (modo produção) e cole abaixo as chaves
+      do seu app web (Configurações do projeto > Seus apps > SDK setup).
+   5. Nas regras do Firestore, restrinja ao usuário logado, por ex.:
+        match /leads/{doc} {
+          allow read, write: if request.auth != null;
+        }
+   ===================================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyC8D1vy8sSdO7Z_uLbqGpXPiK1YUZP1twc",
+  authDomain: "crm-imoveis-wn.firebaseapp.com",
+  projectId: "crm-imoveis-wn",
+  storageBucket: "crm-imoveis-wn.firebasestorage.app",
+  messagingSenderId: "370260383630",
+  appId: "1:370260383630:web:ba21b73f5e1a6a197a76df"
+};
+
+const MASTER_EMAIL = "sequeagora@gmail.com";
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const STATUS_LIST = [
+  "Novo Lead","Em contato","Qualificado","Aguardando Resposta","Em Follow-up",
+  "Visita Agendada","Proposta","Negociação","Venda","Alugou","Já vendeu",
+  "Desistiu de vender","Pós Venda","Perdido"
+];
+
+const SEED_LEADS = [{"dataEntrada": "2026-08-25", "nome": "Charles", "telefone": "11 96650-6794", "tipo": "Compra", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-25", "nome": "Adison", "telefone": "19 97407-7914", "tipo": "Compra", "valor": 638000.0, "imovel": "AP 3 quartos Princesa Doeste Campinas", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.chavesnamao.com.br/imovel/apartamento-a-venda-3-quartos-com-garagem-sp-campinas-jardim-proenca-143m2-RS638000/id-20692474/?utm_source=chatgpt.com", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Liang Lee Da Silva", "telefone": "19 97406-9065", "tipo": "Captação", "valor": "", "imovel": "", "status": "Já vendeu", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Tiago Jose Benini Mastracouzo", "telefone": "11955776358 16992452545", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Ricardo Fabricio", "telefone": "19 99111-6090", "tipo": "Captação", "valor": "", "imovel": "", "status": "Desistiu de vender", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": "Disse que ap não está anunciado"}, {"dataEntrada": "2026-08-26", "nome": "Jose Octavio Vitoriano Martines Penna", "telefone": "12 98168-0487", "tipo": "Captação", "valor": "", "imovel": "", "status": "Já vendeu", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Elisete Aparecida Tezotto", "telefone": "15 99835-9035", "tipo": "Captação", "valor": "", "imovel": "", "status": "Já vendeu", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Heraldo Canto Micheli", "telefone": "19982716793 19992305606", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Paulo Damiao Carvalho Reis", "telefone": "", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-27", "proximoFollowup": null, "diasSemContato": 4, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Heloisa Machado Fleury", "telefone": "19 98140-2091", "tipo": "Captação", "valor": "", "imovel": "", "status": "Já vendeu", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": "Disse que vendeu há 2 anos"}, {"dataEntrada": "2026-08-26", "nome": "Magali Aparecida Lando Cecilio", "telefone": "19997721726 19996051978", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Felipe", "telefone": "11 99388-4762", "tipo": "Compra", "valor": 240000.0, "imovel": "AP 1 quarto Centro", "status": "Visita Agendada", "temperatura": "🔥 Quente", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Fatima", "telefone": "11 98624-8038", "tipo": "Compra", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-26", "nome": "Erica (curiosidade)", "telefone": "19 98604-4141", "tipo": "Compra", "valor": "", "imovel": "Casa 3 quartos Campos Elíseos", "status": "Perdido", "temperatura": "❄️ Frio", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "Geraldo", "telefone": "19991645798.0", "tipo": "Compra", "valor": 500000.0, "imovel": "Casa 3 quartos Taqueral", "status": "Em contato", "temperatura": "😐 Morno", "ultimoContato": "2026-08-27", "proximoFollowup": null, "diasSemContato": 4, "prioridade": "🟢 Baixa", "link": "https://www.imovelweb.com.br/propriedades/casa-a-venda-taquaral-3-quartos-150-m2-3043865135.html", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "Juliana", "telefone": "19971182229.0", "tipo": "Compra", "valor": 200000.0, "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-26", "proximoFollowup": null, "diasSemContato": 5, "prioridade": "🟢 Baixa", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-vila-palacios-2-quartos-52-m2-3043844488.html", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "Renata", "telefone": "19 98224-3070", "tipo": "Compra", "valor": 290000.0, "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": "2026-08-27", "proximoFollowup": null, "diasSemContato": 4, "prioridade": "🟢 Baixa", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "David Alex", "telefone": "19 98907-7026", "tipo": "Compra", "valor": 320000.0, "imovel": "", "status": "Visita Agendada", "temperatura": "🔥 Quente", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "Casa com 2 quartos na Rua Edson Sales de Oliveira, 8, Botafogo, Campinas - SP - ID: 45965465 | Chaves na Mão", "observacoes": "Mora em Americana e está se mudando para Campinas, esposa já mora em campinas"}, {"dataEntrada": "2026-08-27", "nome": "Thalita", "telefone": "19 98391-2208", "tipo": "Compra", "valor": 290000.0, "imovel": "", "status": "Em contato", "temperatura": "😐 Morno", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": "Enviar opções AP 3 quartos Flamboyant"}, {"dataEntrada": "2026-08-27", "nome": "José", "telefone": "19 99741-7120", "tipo": "Compra", "valor": 200000.0, "imovel": "", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-jardim-san-diego-2-quartos-42-3043867253.html", "observacoes": ""}, {"dataEntrada": "2026-08-27", "nome": "Cida", "telefone": "71 9937-9287", "tipo": "Compra", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-jardim-san-diego-2-quartos-42-3043867253.html", "observacoes": ""}, {"dataEntrada": "2026-08-28", "nome": "Camila", "telefone": "19 98183-3610", "tipo": "Compra", "valor": 265000.0, "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-28", "nome": "Rose (Queria sábado)", "telefone": "(19) 98337-2235", "tipo": "Compra", "valor": 290000.0, "imovel": "", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.chavesnamao.com.br/imovel/apartamento-a-venda-2-quartos-com-garagem-sp-campinas-jardim-dos-oliveiras-RS290000/id-45965097/", "observacoes": ""}, {"dataEntrada": "2026-08-28", "nome": "Carlos Martin", "telefone": "19 99782-4435", "tipo": "Captação", "valor": "", "imovel": "", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-28", "nome": "Oswaldo", "telefone": "11992925775.0", "tipo": "Compra", "valor": 500000.0, "imovel": "Casa Taquaral 3 quartos 150m", "status": "Em Follow-up", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/casa-a-venda-taquaral-3-quartos-150-m2-3043865135.html", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Andre (Número não existe)", "telefone": "11 98748-5637", "tipo": "Compra", "valor": 695000.0, "imovel": "Casa 5 Q PQ Universidades", "status": "Perdido", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Tania (permuta)", "telefone": "19 98293-1369", "tipo": "Compra", "valor": 540000.0, "imovel": "Casa 2Q Jd Interlagos", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Karen", "telefone": "19 99795-6128", "tipo": "Compra", "valor": 266000.0, "imovel": "Casa 3 Q Campos Elíseos", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.chavesnamao.com.br/imovel/casa-a-venda-3-quartos-com-garagem-sp-campinas-jardim-campos-eliseos-RS266000/id-45960681/", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Gabriela", "telefone": "15 99726-7110", "tipo": "Compra", "valor": 240000.0, "imovel": "AP 2 Q Proença", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "sem link", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Monica", "telefone": "19999158612.0", "tipo": "Compra", "valor": "325 / 340 k", "imovel": "Casa Von Zuben 3 Q e 4 Q", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/casa-a-venda-jardim-antonio-von-zuben-3-quartos-80-3043858677.html", "observacoes": "https://www.imovelweb.com.br/propriedades/casa-a-venda-jardim-antonio-von-zuben-4-quartos-3043841267.html"}, {"dataEntrada": "2026-08-31", "nome": "Naldi", "telefone": "19981238560.0", "tipo": "Compra", "valor": 700000.0, "imovel": "AP 3 Q Pq Prado", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Diego", "telefone": "19 97420-9579", "tipo": "Compra", "valor": 290000.0, "imovel": "AP 2 Q VL União", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "sem link", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Gislaine", "telefone": "19993322869.0", "tipo": "Compra", "valor": 360000.0, "imovel": "Ap 2Q Pq Industrial", "status": "Em contato", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-parque-industrial-2-quartos-54-3043860973.html", "observacoes": ""}, {"dataEntrada": "2026-08-31", "nome": "Ana Paula", "telefone": "19987056796.0", "tipo": "Compra", "valor": 425000.0, "imovel": "Ap 2 Q Vila Industrial", "status": "Aguardando Resposta", "temperatura": "", "ultimoContato": null, "proximoFollowup": null, "diasSemContato": null, "prioridade": "🔴 Alta", "link": "https://www.imovelweb.com.br/propriedades/apartamento-a-venda-vila-industrial-2-quartos-64-3043841280.html", "observacoes": ""}];
+
+let currentLeads = []; // {id, ...fields, historico: []}
+let activeLeadId = null;
+let dragLeadId = null;
+
+/* ---------------- Auth flow ---------------- */
+const loginScreen = document.getElementById('login-screen');
+const appEl = document.getElementById('app');
+const loadingApp = document.getElementById('loading-app');
+
+document.getElementById('login-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  errEl.textContent = '';
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  auth.signInWithEmailAndPassword(email, pass)
+    .catch(function(err){
+      errEl.textContent = traduzErroAuth(err);
+    })
+    .finally(function(){
+      btn.disabled = false; btn.textContent = 'Entrar';
+    });
+});
+
+function traduzErroAuth(err){
+  const map = {
+    'auth/invalid-email':'E-mail inválido.',
+    'auth/user-not-found':'Usuário não encontrado.',
+    'auth/wrong-password':'Senha incorreta.',
+    'auth/invalid-credential':'E-mail ou senha incorretos.',
+    'auth/too-many-requests':'Muitas tentativas. Aguarde e tente de novo.',
+    'auth/network-request-failed':'Falha de rede. Verifique a internet.'
+  };
+  return map[err.code] || ('Não foi possível entrar (' + err.code + ').');
+}
+
+document.getElementById('logout-btn').addEventListener('click', function(){
+  auth.signOut();
+});
+
+auth.onAuthStateChanged(function(user){
+  if(user){
+    loginScreen.style.display = 'none';
+    appEl.classList.add('active');
+    document.getElementById('user-email-label').textContent = user.email;
+    startLeadsListener();
+  } else {
+    appEl.classList.remove('active');
+    loginScreen.style.display = 'flex';
+    loadingApp.style.display = 'none';
+  }
+});
+
+/* ---------------- Firestore data ---------------- */
+let unsub = null;
+function startLeadsListener(){
+  loadingApp.style.display = 'flex';
+  if(unsub) unsub();
+  unsub = db.collection('leads').onSnapshot(async function(snap){
+    if(snap.empty){
+      await seedInitialData();
+      return;
+    }
+    currentLeads = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+    loadingApp.style.display = 'none';
+    renderAll();
+  }, function(err){
+    loadingApp.textContent = 'Erro ao carregar dados: ' + err.message + ' — verifique o firebaseConfig e as regras do Firestore.';
+  });
+}
+
+async function seedInitialData(){
+  try{
+    const batch = db.batch();
+    SEED_LEADS.forEach(function(l){
+      const ref = db.collection('leads').doc();
+      const status = normalizeStatus(l.status);
+      batch.set(ref, {
+        nome: l.nome || '',
+        telefone: (l.telefone||'').toString(),
+        tipo: l.tipo || 'Compra',
+        valor: l.valor != null ? l.valor.toString() : '',
+        imovel: l.imovel || '',
+        status: status,
+        temperatura: l.temperatura || '',
+        prioridade: l.prioridade || '🔴 Alta',
+        proximoFollowup: l.proximoFollowup || '',
+        link: l.link || '',
+        observacoes: l.observacoes || '',
+        criadoEm: l.dataEntrada || new Date().toISOString().slice(0,10),
+        historico: l.ultimoContato ? [{data:l.ultimoContato, tipo:'Outro', nota:'Importado da planilha original.'}] : []
+      });
+    });
+    await batch.commit();
+    showToast('Base importada da sua planilha (' + SEED_LEADS.length + ' leads).');
+  }catch(e){
+    loadingApp.textContent = 'Não foi possível importar os dados iniciais: ' + e.message;
+  }
+}
+
+function normalizeStatus(s){
+  if(!s) return 'Novo Lead';
+  if(s === 'Novo') return 'Novo Lead';
+  if(STATUS_LIST.indexOf(s) >= 0) return s;
+  return s; // mantém status customizado vindo da planilha (ex: "Já vendeu")
+}
+
+/* ---------------- Navigation ---------------- */
+document.querySelectorAll('.nav-btn').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-' + btn.dataset.page).classList.add('active');
+  });
+});
+
+/* ---------------- Rendering ---------------- */
+function renderAll(){
+  renderDashboard();
+  renderKanban();
+  renderLista();
+}
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+function diasEntre(a,b){
+  return Math.round((new Date(b) - new Date(a)) / 86400000);
+}
+
+function isFechado(status){
+  return ['Venda','Alugou','Já vendeu'].indexOf(status) >= 0;
+}
+function isEncerrado(status){
+  return isFechado(status) || ['Desistiu de vender','Perdido'].indexOf(status) >= 0;
+}
+
+function renderDashboard(){
+  const hoje = todayStr();
+  const ativos = currentLeads.filter(l => !isEncerrado(l.status));
+  document.getElementById('stat-total').textContent = ativos.length;
+  document.getElementById('stat-fechados').textContent = currentLeads.filter(l => isFechado(l.status)).length;
+
+  const comFollowup = currentLeads.filter(l => l.proximoFollowup && !isEncerrado(l.status));
+  const atrasados = comFollowup.filter(l => l.proximoFollowup < hoje);
+  const hojeList = comFollowup.filter(l => l.proximoFollowup === hoje);
+  const futuros = comFollowup.filter(l => l.proximoFollowup > hoje);
+  document.getElementById('stat-atrasados').textContent = atrasados.length;
+  document.getElementById('stat-hoje').textContent = hojeList.length;
+
+  const pendOrdered = atrasados.concat(hojeList).concat(futuros)
+    .sort((a,b) => a.proximoFollowup.localeCompare(b.proximoFollowup));
+
+  const pendList = document.getElementById('pend-list');
+  document.getElementById('pend-count').textContent = pendOrdered.length;
+  if(pendOrdered.length === 0){
+    pendList.innerHTML = '<div class="empty-msg">Nenhuma chamada agendada. Defina um "próximo follow-up" ao editar um lead.</div>';
+  } else {
+    pendList.innerHTML = pendOrdered.map(function(l){
+      let tag = 'futuro', tagLabel = formatDate(l.proximoFollowup);
+      if(l.proximoFollowup < hoje){ tag='atrasado'; tagLabel = 'Atrasado · ' + formatDate(l.proximoFollowup); }
+      else if(l.proximoFollowup === hoje){ tag='hoje'; tagLabel = 'Hoje'; }
+      return '<div class="call-row" onclick="openLead(\'' + l.id + '\')">' +
+        '<span class="call-tag ' + tag + '">' + tagLabel + '</span>' +
+        '<span class="call-name">' + esc(l.nome) + '</span>' +
+        '<span class="call-meta">' + esc(l.telefone||'sem telefone') + ' · ' + esc(l.status) + '</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  const semContato = ativos.filter(l => l.historico && l.historico.length)
+    .map(function(l){
+      const ultima = l.historico.map(h=>h.data).sort().slice(-1)[0];
+      return {l:l, dias: diasEntre(ultima, hoje), ultima:ultima};
+    })
+    .filter(x => x.dias >= 3)
+    .sort((a,b)=> b.dias - a.dias)
+    .slice(0,8);
+
+  const staleList = document.getElementById('stale-list');
+  document.getElementById('stale-count').textContent = semContato.length;
+  if(semContato.length === 0){
+    staleList.innerHTML = '<div class="empty-msg">Nenhum lead parado há mais de 3 dias sem contato registrado.</div>';
+  } else {
+    staleList.innerHTML = semContato.map(function(x){
+      return '<div class="call-row" onclick="openLead(\'' + x.l.id + '\')">' +
+        '<span class="call-tag atrasado">' + x.dias + ' dias</span>' +
+        '<span class="call-name">' + esc(x.l.nome) + '</span>' +
+        '<span class="call-meta">' + esc(x.l.status) + '</span>' +
+        '<span class="call-date">Último contato ' + formatDate(x.ultima) + '</span>' +
+        '</div>';
+    }).join('');
+  }
+}
+
+function formatDate(iso){
+  if(!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return d + '/' + m;
+}
+function formatDateFull(iso){
+  if(!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return d + '/' + m + '/' + y;
+}
+function esc(s){
+  return (s==null?'':String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+function renderKanban(){
+  const board = document.getElementById('kanban-board');
+  const statusesInUse = STATUS_LIST.slice();
+  currentLeads.forEach(l => { if(statusesInUse.indexOf(l.status) < 0) statusesInUse.push(l.status); });
+
+  board.innerHTML = statusesInUse.map(function(status){
+    const leads = currentLeads.filter(l => l.status === status);
+    return '<div class="kcol">' +
+      '<div class="kcol-head"><h3>' + esc(status) + '</h3><span class="count">' + leads.length + '</span></div>' +
+      '<div class="kcol-body" data-status="' + esc(status) + '">' +
+        leads.map(cardHtml).join('') +
+      '</div></div>';
+  }).join('') + '<div class="add-lead-col"><button class="add-lead-btn" onclick="openNewLead()">+ Adicionar lead</button></div>';
+
+  document.querySelectorAll('.kcard').forEach(function(card){
+    card.addEventListener('dragstart', function(e){
+      dragLeadId = card.dataset.id;
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', function(){ card.classList.remove('dragging'); });
+    card.addEventListener('click', function(){ openLead(card.dataset.id); });
+  });
+  document.querySelectorAll('.kcol-body').forEach(function(col){
+    col.addEventListener('dragover', function(e){ e.preventDefault(); col.classList.add('dragover'); });
+    col.addEventListener('dragleave', function(){ col.classList.remove('dragover'); });
+    col.addEventListener('drop', function(e){
+      e.preventDefault();
+      col.classList.remove('dragover');
+      if(dragLeadId){
+        db.collection('leads').doc(dragLeadId).update({status: col.dataset.status});
+        dragLeadId = null;
+      }
+    });
+  });
+}
+
+function cardHtml(l){
+  const prio = (l.prioridade||'').indexOf('Alta') >= 0 ? 'alta' : (l.prioridade||'').indexOf('Baixa') >= 0 ? 'baixa' : '';
+  const valor = l.valor ? ('R$ ' + formatMoney(l.valor)) : '';
+  return '<div class="kcard ' + prio + '" draggable="true" data-id="' + l.id + '">' +
+    '<div class="kname">' + esc(l.nome) + '</div>' +
+    '<div class="ktype">' + esc(l.tipo||'') + (l.imovel ? ' · ' + esc(truncate(l.imovel,28)) : '') + '</div>' +
+    (valor ? '<div class="kval">' + valor + '</div>' : '') +
+    '<div class="kmeta">' +
+      (l.telefone ? '<span>📞 ' + esc(l.telefone) + '</span>' : '') +
+      (l.proximoFollowup ? '<span style="margin-left:auto">🗓 ' + formatDate(l.proximoFollowup) + '</span>' : '') +
+    '</div></div>';
+}
+function truncate(s,n){ return s.length>n ? s.slice(0,n)+'…' : s; }
+function formatMoney(v){
+  const num = parseFloat(String(v).replace(/[^\d.,]/g,'').replace(',','.'));
+  if(isNaN(num)) return v;
+  return num.toLocaleString('pt-BR');
+}
+
+function renderLista(){
+  const q = (document.getElementById('lista-search').value || '').toLowerCase();
+  const filtered = currentLeads.filter(l =>
+    l.nome.toLowerCase().includes(q) || (l.telefone||'').toLowerCase().includes(q)
+  ).sort((a,b) => (b.criadoEm||'').localeCompare(a.criadoEm||''));
+
+  document.getElementById('lista-sub').textContent = filtered.length + ' de ' + currentLeads.length + ' leads.';
+
+  const rows = filtered.map(function(l){
+    return '<div class="call-row" onclick="openLead(\'' + l.id + '\')">' +
+      '<span class="call-name">' + esc(l.nome) + '</span>' +
+      '<span class="call-meta">' + esc(l.tipo) + '</span>' +
+      '<span class="call-tag ' + (isEncerrado(l.status)?'':'futuro') + '" style="background:var(--paper-2);color:var(--ink-soft)">' + esc(l.status) + '</span>' +
+      '<span class="call-meta">' + esc(l.telefone||'—') + '</span>' +
+      '<span class="call-date">' + (l.criadoEm ? formatDateFull(l.criadoEm) : '') + '</span>' +
+      '</div>';
+  }).join('');
+  document.getElementById('lista-table').innerHTML = rows || '<div class="empty-msg">Nenhum lead encontrado.</div>';
+}
+document.getElementById('lista-search').addEventListener('input', renderLista);
+
+/* ---------------- Modal: view / edit / new lead ---------------- */
+const overlay = document.getElementById('lead-overlay');
+function fillStatusSelect(){
+  const statusesInUse = STATUS_LIST.slice();
+  currentLeads.forEach(l => { if(statusesInUse.indexOf(l.status) < 0) statusesInUse.push(l.status); });
+  document.getElementById('f-status').innerHTML = statusesInUse.map(s => '<option value="'+esc(s)+'">'+esc(s)+'</option>').join('');
+}
+
+function openLead(id){
+  const l = currentLeads.find(x => x.id === id);
+  if(!l) return;
+  activeLeadId = id;
+  document.getElementById('modal-title').textContent = l.nome;
+  document.getElementById('modal-sub').textContent = 'Lead desde ' + (l.criadoEm ? formatDateFull(l.criadoEm) : '—');
+  fillStatusSelect();
+  document.getElementById('f-nome').value = l.nome || '';
+  document.getElementById('f-telefone').value = l.telefone || '';
+  document.getElementById('f-tipo').value = l.tipo || 'Compra';
+  document.getElementById('f-status').value = l.status || 'Novo Lead';
+  document.getElementById('f-prioridade').value = l.prioridade || '🔴 Alta';
+  document.getElementById('f-temperatura').value = l.temperatura || '';
+  document.getElementById('f-valor').value = l.valor || '';
+  document.getElementById('f-followup').value = l.proximoFollowup || '';
+  document.getElementById('f-imovel').value = l.imovel || '';
+  document.getElementById('f-link').value = l.link || '';
+  document.getElementById('f-obs').value = l.observacoes || '';
+  document.getElementById('hist-data').value = todayStr();
+  renderHistorico(l.historico || []);
+  document.getElementById('btn-delete-lead').style.display = 'inline-block';
+  overlay.classList.add('active');
+}
+
+function openNewLead(){
+  activeLeadId = null;
+  document.getElementById('modal-title').textContent = 'Novo lead';
+  document.getElementById('modal-sub').textContent = 'Preencha os dados do contato';
+  fillStatusSelect();
+  document.getElementById('f-nome').value = '';
+  document.getElementById('f-telefone').value = '';
+  document.getElementById('f-tipo').value = 'Compra';
+  document.getElementById('f-status').value = 'Novo Lead';
+  document.getElementById('f-prioridade').value = '🔴 Alta';
+  document.getElementById('f-temperatura').value = '';
+  document.getElementById('f-valor').value = '';
+  document.getElementById('f-followup').value = '';
+  document.getElementById('f-imovel').value = '';
+  document.getElementById('f-link').value = '';
+  document.getElementById('f-obs').value = '';
+  document.getElementById('hist-data').value = todayStr();
+  renderHistorico([]);
+  document.getElementById('btn-delete-lead').style.display = 'none';
+  overlay.classList.add('active');
+}
+['btn-new-lead-1','btn-new-lead-2'].forEach(id => document.getElementById(id).addEventListener('click', openNewLead));
+
+function closeModal(){ overlay.classList.remove('active'); activeLeadId = null; }
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('btn-cancel-lead').addEventListener('click', closeModal);
+overlay.addEventListener('click', function(e){ if(e.target === overlay) closeModal(); });
+
+let pendingHistorico = [];
+function renderHistorico(hist){
+  pendingHistorico = (hist||[]).slice().sort((a,b)=> b.data.localeCompare(a.data));
+  const el = document.getElementById('hist-list');
+  if(pendingHistorico.length === 0){
+    el.innerHTML = '<div class="empty-msg" style="padding:14px 0">Nenhum contato registrado ainda.</div>';
+    return;
+  }
+  el.innerHTML = pendingHistorico.map(function(h, i){
+    return '<div class="hist-item">' +
+      '<div class="hist-dot"></div>' +
+      '<div style="flex:1">' +
+        '<span class="hist-date">' + formatDateFull(h.data) + '</span>' +
+        '<span class="hist-type">' + esc(h.tipo||'Outro') + '</span>' +
+        '<div class="hist-note">' + esc(h.nota||'') + '</div>' +
+      '</div>' +
+      '<button class="hist-del" data-idx="' + i + '">remover</button>' +
+    '</div>';
+  }).join('');
+  el.querySelectorAll('.hist-del').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      pendingHistorico.splice(parseInt(btn.dataset.idx), 1);
+      renderHistoricoFromState();
+    });
+  });
+}
+function renderHistoricoFromState(){
+  const el = document.getElementById('hist-list');
+  if(pendingHistorico.length === 0){
+    el.innerHTML = '<div class="empty-msg" style="padding:14px 0">Nenhum contato registrado ainda.</div>';
+    return;
+  }
+  el.innerHTML = pendingHistorico.map(function(h, i){
+    return '<div class="hist-item">' +
+      '<div class="hist-dot"></div>' +
+      '<div style="flex:1">' +
+        '<span class="hist-date">' + formatDateFull(h.data) + '</span>' +
+        '<span class="hist-type">' + esc(h.tipo||'Outro') + '</span>' +
+        '<div class="hist-note">' + esc(h.nota||'') + '</div>' +
+      '</div>' +
+      '<button class="hist-del" data-idx="' + i + '">remover</button>' +
+    '</div>';
+  }).join('');
+  el.querySelectorAll('.hist-del').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      pendingHistorico.splice(parseInt(btn.dataset.idx), 1);
+      renderHistoricoFromState();
+    });
+  });
+}
+
+document.getElementById('hist-add').addEventListener('click', function(){
+  const data = document.getElementById('hist-data').value || todayStr();
+  const tipo = document.getElementById('hist-tipo').value;
+  const nota = document.getElementById('hist-nota').value.trim();
+  if(!nota){ showToast('Escreva uma nota sobre o contato.'); return; }
+  pendingHistorico.unshift({data:data, tipo:tipo, nota:nota});
+  pendingHistorico.sort((a,b)=> b.data.localeCompare(a.data));
+  document.getElementById('hist-nota').value = '';
+  renderHistoricoFromState();
+});
+
+document.getElementById('btn-save-lead').addEventListener('click', async function(){
+  const nome = document.getElementById('f-nome').value.trim();
+  if(!nome){ showToast('O nome do lead é obrigatório.'); return; }
+  const ultimoContato = pendingHistorico.length ? pendingHistorico.map(h=>h.data).sort().slice(-1)[0] : '';
+  const payload = {
+    nome: nome,
+    telefone: document.getElementById('f-telefone').value.trim(),
+    tipo: document.getElementById('f-tipo').value,
+    status: document.getElementById('f-status').value,
+    prioridade: document.getElementById('f-prioridade').value,
+    temperatura: document.getElementById('f-temperatura').value,
+    valor: document.getElementById('f-valor').value.trim(),
+    proximoFollowup: document.getElementById('f-followup').value,
+    imovel: document.getElementById('f-imovel').value.trim(),
+    link: document.getElementById('f-link').value.trim(),
+    observacoes: document.getElementById('f-obs').value.trim(),
+    historico: pendingHistorico,
+    ultimoContato: ultimoContato
+  };
+  try{
+    if(activeLeadId){
+      await db.collection('leads').doc(activeLeadId).update(payload);
+      showToast('Lead atualizado.');
+    } else {
+      payload.criadoEm = todayStr();
+      await db.collection('leads').add(payload);
+      showToast('Lead criado.');
+    }
+    closeModal();
+  }catch(e){
+    showToast('Erro ao salvar: ' + e.message);
+  }
+});
+
+document.getElementById('btn-delete-lead').addEventListener('click', async function(){
+  if(!activeLeadId) return;
+  if(!confirm('Excluir este lead definitivamente?')) return;
+  try{
+    await db.collection('leads').doc(activeLeadId).delete();
+    showToast('Lead excluído.');
+    closeModal();
+  }catch(e){
+    showToast('Erro ao excluir: ' + e.message);
+  }
+});
+
+/* ---------------- Toast ---------------- */
+let toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove('show'), 3200);
+}
+</script>
+</body>
+</html>
