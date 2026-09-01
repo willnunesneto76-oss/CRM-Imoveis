@@ -402,6 +402,7 @@
           <select id="f-temperatura"><option value="">—</option><option value="🔥 Quente">🔥 Quente</option><option value="😐 Morno">😐 Morno</option><option value="❄️ Frio">❄️ Frio</option></select>
         </div>
         <div class="field-sm"><label>Valor (R$)</label><input id="f-valor" placeholder="ex: 350000"></div>
+        <div class="field-sm"><label>Data de entrada</label><input type="date" id="f-entrada"></div>
         <div class="field-sm"><label>Próximo follow-up</label><input type="date" id="f-followup"></div>
       </div>
       <div class="field-sm"><label>Imóvel de interesse</label><input id="f-imovel"></div>
@@ -1015,7 +1016,7 @@ function openLead(id){
   document.getElementById('modal-title').textContent = l.nome;
   document.getElementById('modal-sub').textContent = l.status === 'Perdido' && l.motivoPerda
     ? 'Perdido: ' + l.motivoPerda
-    : 'Lead desde ' + (l.criadoEm ? formatDateFull(l.criadoEm) : '—');
+    : 'Edite os dados abaixo, incluindo a data de entrada se precisar.';
   fillStatusSelect();
   document.getElementById('f-nome').value = l.nome || '';
   document.getElementById('f-telefone').value = l.telefone || '';
@@ -1025,6 +1026,7 @@ function openLead(id){
   document.getElementById('f-temperatura').value = l.temperatura || '';
   document.getElementById('f-valor').value = l.valor || '';
   document.getElementById('f-fifty').checked = !!l.fifty;
+  document.getElementById('f-entrada').value = l.criadoEm || todayStr();
   document.getElementById('f-followup').value = l.proximoFollowup || '';
   document.getElementById('f-imovel').value = l.imovel || '';
   document.getElementById('f-link').value = l.link || '';
@@ -1052,6 +1054,7 @@ function openNewLead(grupo){
   document.getElementById('f-temperatura').value = '';
   document.getElementById('f-valor').value = '';
   document.getElementById('f-fifty').checked = false;
+  document.getElementById('f-entrada').value = todayStr();
   document.getElementById('f-followup').value = '';
   document.getElementById('f-imovel').value = '';
   document.getElementById('f-link').value = '';
@@ -1169,14 +1172,14 @@ document.getElementById('btn-save-lead').addEventListener('click', async functio
     link: document.getElementById('f-link').value.trim(),
     observacoes: document.getElementById('f-obs').value.trim(),
     historico: pendingHistorico,
-    ultimoContato: ultimoContato
+    ultimoContato: ultimoContato,
+    criadoEm: document.getElementById('f-entrada').value || todayStr()
   };
   try{
     if(activeLeadId){
       await db.collection('leads').doc(activeLeadId).update(payload);
       showToast('Lead atualizado.');
     } else {
-      payload.criadoEm = todayStr();
       await db.collection('leads').add(payload);
       showToast('Lead criado.');
     }
