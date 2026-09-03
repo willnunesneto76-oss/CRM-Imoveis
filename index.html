@@ -145,6 +145,19 @@
   .destaque-check{width:17px;height:17px;flex:none;cursor:pointer;accent-color:var(--amber);}
   .comissao-box{background:var(--sage-soft);border-radius:9px;padding:14px 16px;margin-bottom:14px;}
   .comissao-fifty{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;margin-bottom:10px;}
+  .tipo-toggle-row{display:flex;gap:10px;}
+  .tipo-toggle{
+    flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+    padding:12px;border:2px solid var(--line);border-radius:9px;font-size:14px;font-weight:700;
+    cursor:pointer;color:var(--ink-soft);background:var(--paper);
+  }
+  .tipo-toggle input{width:16px;height:16px;}
+  .tipo-toggle.compra:has(input:checked){border-color:var(--blueprint);color:var(--blueprint);background:#EDF1F7;}
+  .tipo-toggle.captacao:has(input:checked){border-color:var(--brick);color:var(--brick);background:var(--brick-soft);}
+  .tipo-toggle-hint{font-size:11.5px;color:var(--ink-soft);margin-top:7px;line-height:1.5;}
+  #wrap-status-compra,#wrap-status-captacao{
+    border-radius:9px;padding:2px 0 4px;margin-top:12px;
+  }
   .comissao-fifty input{width:16px;height:16px;accent-color:var(--sage);}
   .comissao-result{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:13px;color:var(--ink-soft);}
   .comissao-result strong{font-family:'Fraunces',serif;font-size:20px;color:var(--sage);font-weight:600;}
@@ -189,12 +202,13 @@
   .kcard.dragging{opacity:.4;}
   .kcard.grupo-compra{border-top-color:var(--blueprint);}
   .kcard.grupo-captacao{border-top-color:var(--brick);}
-  .kcard .kbadge{
+  .kbadges{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px;}
+  .kbadge2{
     display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;
-    padding:2px 8px;border-radius:20px;margin-bottom:7px;
+    padding:2px 8px;border-radius:20px;
   }
-  .kcard.grupo-compra .kbadge{background:#EDF1F7;color:var(--blueprint);}
-  .kcard.grupo-captacao .kbadge{background:var(--brick-soft);color:var(--brick);}
+  .kbadge2.compra{background:#EDF1F7;color:var(--blueprint);}
+  .kbadge2.captacao{background:var(--brick-soft);color:var(--brick);}
   .kcard .kprio{float:right;font-size:12px;}
   .kcard .kname{font-weight:600;font-size:14px;margin-bottom:3px;}
   .kcard .ktype{font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;}
@@ -365,7 +379,7 @@
           <span style="width:17px"></span>
           <span class="call-name">Nome</span>
           <span class="call-meta">Tipo</span>
-          <span style="width:150px">Status</span>
+          <span style="width:210px">Status</span>
           <span class="call-meta">Telefone</span>
           <span class="call-date">Data de entrada</span>
         </div>
@@ -388,13 +402,31 @@
       <button class="modal-close" id="modal-close">✕</button>
     </div>
     <div class="modal-body">
+      <div class="field-sm">
+        <label>Este lead é sobre</label>
+        <div class="tipo-toggle-row">
+          <label class="tipo-toggle compra"><input type="checkbox" id="f-tipo-compra"> 🏠 Compra</label>
+          <label class="tipo-toggle captacao"><input type="checkbox" id="f-tipo-captacao"> 🔑 Captação</label>
+        </div>
+        <div class="tipo-toggle-hint">Marque as duas se a mesma pessoa está comprando um imóvel <em>e</em> te ofereceu o dela pra captar — o lead aparece nos dois quadros, com status independente em cada um.</div>
+      </div>
+      <div class="grid2" id="wrap-status-compra">
+        <div class="field-sm"><label>Status (Compra)</label><select id="f-status-compra"></select></div>
+        <div class="field-sm" id="wrap-motivo-compra" style="display:none">
+          <label>Motivo da perda (Compra)</label>
+          <select id="f-motivo-compra"><option value="">Selecione…</option></select>
+        </div>
+      </div>
+      <div class="grid2" id="wrap-status-captacao">
+        <div class="field-sm"><label>Status (Captação)</label><select id="f-status-captacao"></select></div>
+        <div class="field-sm" id="wrap-motivo-captacao" style="display:none">
+          <label>Motivo da perda (Captação)</label>
+          <select id="f-motivo-captacao"><option value="">Selecione…</option></select>
+        </div>
+      </div>
       <div class="grid2">
         <div class="field-sm"><label>Nome</label><input id="f-nome"></div>
         <div class="field-sm"><label>Telefone</label><input id="f-telefone"></div>
-        <div class="field-sm"><label>Tipo</label>
-          <select id="f-tipo"><option>Compra</option><option>Captação</option><option>Venda</option><option>Aluguel</option><option>Locação</option></select>
-        </div>
-        <div class="field-sm"><label>Status</label><select id="f-status"></select></div>
         <div class="field-sm"><label>Prioridade</label>
           <select id="f-prioridade"><option value="🔴 Alta">🔴 Alta</option><option value="🟡 Média">🟡 Média</option><option value="🟢 Baixa">🟢 Baixa</option></select>
         </div>
@@ -420,22 +452,6 @@
       </div>
 
       <div class="field-sm"><label>Observações gerais</label><textarea id="f-obs"></textarea></div>
-
-      <div class="field-sm" id="wrap-motivo-perda" style="display:none">
-        <label>Motivo da perda</label>
-        <select id="f-motivo-perda">
-          <option value="">Selecione…</option>
-          <option>Preço/condição não fechou</option>
-          <option>Cliente desistiu / sumiu</option>
-          <option>Imóvel já vendido por terceiros</option>
-          <option>Proprietário não quis captar</option>
-          <option>Comprou/alugou em outro lugar</option>
-          <option>Sem retorno após várias tentativas</option>
-          <option>Fora do perfil/orçamento</option>
-          <option>Outro</option>
-        </select>
-        <textarea id="f-motivo-perda-obs" placeholder="Detalhe o motivo (opcional)" style="margin-top:8px"></textarea>
-      </div>
 
       <div class="section-title">Histórico de contato</div>
       <div id="hist-list"></div>
@@ -500,9 +516,9 @@ const STATUS_LIST = [
   "Desistiu de vender","Pós Venda","Perdido"
 ];
 
-/* Colunas específicas por tipo de operação — mantém os dois fluxos
-   claramente separados (Compra = venda de imóvel pro cliente;
-   Captação = tentativa de captar imóvel de um proprietário). */
+/* Colunas específicas por pipeline — um lead pode participar dos dois ao
+   mesmo tempo (ex: alguém que quer comprar um imóvel E te ofereceu o
+   dela pra captar), cada pipeline com seu próprio status independente. */
 const STATUS_COMPRA = [
   "Novo Lead","Em contato","Aguardando Resposta","Qualificado",
   "Visita Agendada","Proposta","Negociação","Venda",
@@ -512,11 +528,11 @@ const STATUS_CAPTACAO = [
   "Novo Lead","Em contato","Aguardando Resposta","Em Follow-up",
   "Visita Agendada","Captado","Já vendeu","Desistiu de vender","Perdido"
 ];
-const TIPOS_COMPRA = ["Compra","Aluguel","Locação"];
-const TIPOS_CAPTACAO = ["Captação","Venda"];
-function grupoDoTipo(tipo){
-  return TIPOS_CAPTACAO.indexOf(tipo) >= 0 ? 'captacao' : 'compra';
-}
+const MOTIVOS_PERDA = [
+  'Preço/condição não fechou','Cliente desistiu / sumiu','Imóvel já vendido por terceiros',
+  'Proprietário não quis captar','Comprou/alugou em outro lugar','Sem retorno após várias tentativas',
+  'Fora do perfil/orçamento','Outro'
+];
 let kanbanTab = 'compra';
 
 /* Colunas ocultadas manualmente pelo usuário (personalização do kanban),
@@ -598,7 +614,7 @@ function startLeadsListener(){
     }
     currentLeads = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
     loadingApp.style.display = 'none';
-    await migrarAlugouParaPerdido();
+    await migrarParaPipelinesIndependentes();
     await autoSugerirFollowups();
     renderAll();
   }, function(err){
@@ -606,17 +622,34 @@ function startLeadsListener(){
   });
 }
 
-/* Migração única: status antigo "Alugou" não existe mais como coluna —
-   vira Perdido com um motivo padrão (o usuário pode editar o motivo depois). */
-async function migrarAlugouParaPerdido(){
-  const alugados = currentLeads.filter(l => l.status === 'Alugou');
-  if(alugados.length === 0) return;
+function legacyGrupo(tipo){
+  return ["Captação","Venda"].indexOf(tipo) >= 0 ? 'captacao' : 'compra';
+}
+
+/* Migração única: modelo antigo tinha um "tipo" + um "status" só.
+   Agora cada lead tem duas flags (tipoCompra / tipoCaptacao) e um status
+   independente por pipeline em que participa. Leads antigos são
+   convertidos automaticamente na primeira vez que o painel carrega. */
+async function migrarParaPipelinesIndependentes(){
+  const pendentes = currentLeads.filter(l => l.tipoCompra === undefined && l.tipoCaptacao === undefined);
+  if(pendentes.length === 0) return;
   const batch = db.batch();
-  alugados.forEach(function(l){
-    batch.update(db.collection('leads').doc(l.id), {
-      status: 'Perdido',
-      motivoPerda: l.motivoPerda || 'Imóvel alugado (status antigo "Alugou" migrado automaticamente).'
-    });
+  pendentes.forEach(function(l){
+    const grupo = legacyGrupo(l.tipo);
+    let status = l.status || 'Novo Lead';
+    if(status === 'Alugou') status = 'Perdido';
+    const patch = {
+      tipoCompra: grupo === 'compra',
+      tipoCaptacao: grupo === 'captacao',
+      statusCompra: grupo === 'compra' ? status : '',
+      statusCaptacao: grupo === 'captacao' ? status : '',
+      motivoPerdaCompra: grupo === 'compra' ? (l.motivoPerda || '') : '',
+      motivoPerdaCompraObs: grupo === 'compra' ? (l.motivoPerdaObs || '') : '',
+      motivoPerdaCaptacao: grupo === 'captacao' ? (l.motivoPerda || '') : '',
+      motivoPerdaCaptacaoObs: grupo === 'captacao' ? (l.motivoPerdaObs || '') : ''
+    };
+    batch.update(db.collection('leads').doc(l.id), patch);
+    Object.assign(l, patch); // reflete localmente antes do próximo snapshot chegar
   });
   await batch.commit();
 }
@@ -626,14 +659,20 @@ async function seedInitialData(){
     const batch = db.batch();
     SEED_LEADS.forEach(function(l){
       const ref = db.collection('leads').doc();
-      const status = normalizeStatus(l.status);
+      let status = normalizeStatus(l.status);
+      if(status === 'Alugou') status = 'Perdido';
+      const grupo = legacyGrupo(l.tipo);
       batch.set(ref, {
         nome: l.nome || '',
         telefone: (l.telefone||'').toString(),
-        tipo: l.tipo || 'Compra',
+        tipoCompra: grupo === 'compra',
+        tipoCaptacao: grupo === 'captacao',
+        statusCompra: grupo === 'compra' ? status : '',
+        statusCaptacao: grupo === 'captacao' ? status : '',
+        motivoPerdaCompra: '', motivoPerdaCompraObs: '',
+        motivoPerdaCaptacao: '', motivoPerdaCaptacaoObs: '',
         valor: l.valor != null ? l.valor.toString() : '',
         imovel: l.imovel || '',
-        status: status,
         temperatura: l.temperatura || '',
         prioridade: l.prioridade || '🔴 Alta',
         proximoFollowup: l.proximoFollowup || '',
@@ -680,14 +719,19 @@ function diasEntre(a,b){
   return Math.round((new Date(b) - new Date(a)) / 86400000);
 }
 
-function isFechado(status){
-  // Negócio realmente fechado (venda concluída ou imóvel captado com sucesso).
-  return ['Venda','Captado'].indexOf(status) >= 0;
+/* Cada pipeline tem sua própria regra de "encerrado" (fechado ou perdido). */
+function statusFechadoCompra(status){ return status === 'Venda'; }
+function statusEncerradoCompra(status){ return status === 'Venda' || status === 'Perdido'; }
+function statusFechadoCaptacao(status){ return status === 'Captado'; }
+function statusEncerradoCaptacao(status){
+  return ['Captado','Já vendeu','Desistiu de vender','Perdido'].indexOf(status) >= 0;
 }
-function isEncerrado(status){
-  // "Já vendeu" = tentativa de captação que não vingou (o dono já vendeu
-  // por fora) — conta como perdido, nunca como negócio fechado.
-  return isFechado(status) || ['Desistiu de vender','Perdido','Já vendeu'].indexOf(status) >= 0;
+/* Um lead só sai das listas de "pendente"/"ativo" quando TODOS os
+   pipelines em que ele participa estiverem encerrados. */
+function leadEncerrado(l){
+  const compraOk = !l.tipoCompra || statusEncerradoCompra(l.statusCompra);
+  const captacaoOk = !l.tipoCaptacao || statusEncerradoCaptacao(l.statusCaptacao);
+  return compraOk && captacaoOk;
 }
 
 /* Regra automática de follow-up:
@@ -700,7 +744,7 @@ async function autoSugerirFollowups(){
   const hoje = todayStr();
   const paraAtualizar = [];
   currentLeads.forEach(function(l){
-    if(isEncerrado(l.status)) return;
+    if(leadEncerrado(l)) return;
     if(l.proximoFollowup) return;
     const hist = (l.historico||[]).map(h=>h.data).filter(Boolean).sort();
     const ultimaRef = hist.length ? hist[hist.length-1] : (l.criadoEm || hoje);
@@ -722,18 +766,26 @@ async function autoSugerirFollowups(){
   await batch.commit();
 }
 
+/* Texto resumindo o(s) status do lead nos pipelines em que ele participa. */
+function statusLabel(l){
+  const partes = [];
+  if(l.tipoCompra) partes.push('🏠 ' + (l.statusCompra||'Novo Lead'));
+  if(l.tipoCaptacao) partes.push('🔑 ' + (l.statusCaptacao||'Novo Lead'));
+  return partes.join(' · ') || '—';
+}
+
 function renderDashboard(){
   const hoje = todayStr();
-  const ativos = currentLeads.filter(l => !isEncerrado(l.status));
+  const ativos = currentLeads.filter(l => !leadEncerrado(l));
   document.getElementById('stat-total').textContent = ativos.length;
-  document.getElementById('stat-vendas').textContent = currentLeads.filter(l => l.status === 'Venda').length;
-  document.getElementById('stat-captados').textContent = currentLeads.filter(l => l.status === 'Captado').length;
+  document.getElementById('stat-vendas').textContent = currentLeads.filter(l => l.tipoCompra && l.statusCompra === 'Venda').length;
+  document.getElementById('stat-captados').textContent = currentLeads.filter(l => l.tipoCaptacao && l.statusCaptacao === 'Captado').length;
   const comissaoTotal = currentLeads
-    .filter(l => l.status === 'Venda')
+    .filter(l => l.tipoCompra && l.statusCompra === 'Venda')
     .reduce((soma, l) => soma + (l.comissao || calcularComissao(l.valor, l.fifty)), 0);
   document.getElementById('stat-comissao').textContent = formatBRL(comissaoTotal);
 
-  const comFollowup = currentLeads.filter(l => l.proximoFollowup && !isEncerrado(l.status));
+  const comFollowup = currentLeads.filter(l => l.proximoFollowup && !leadEncerrado(l));
   const atrasados = comFollowup.filter(l => l.proximoFollowup < hoje);
   const hojeList = comFollowup.filter(l => l.proximoFollowup === hoje);
   const futuros = comFollowup.filter(l => l.proximoFollowup > hoje);
@@ -756,7 +808,7 @@ function renderDashboard(){
         '<span class="call-tag ' + tag + '">' + tagLabel + '</span>' +
         (l.followupAutomatico ? '<span class="call-tag auto">🤖 sugerido</span>' : '') +
         '<span class="call-name">' + esc(l.nome) + '</span>' +
-        '<span class="call-meta">' + esc(l.telefone||'sem telefone') + ' · ' + esc(l.status) + '</span>' +
+        '<span class="call-meta">' + esc(l.telefone||'sem telefone') + ' · ' + statusLabel(l) + '</span>' +
         '</div>';
     }).join('');
   }
@@ -779,7 +831,7 @@ function renderDashboard(){
       return '<div class="call-row" onclick="openLead(\'' + x.l.id + '\')">' +
         '<span class="call-tag atrasado">' + x.dias + ' dias</span>' +
         '<span class="call-name">' + esc(x.l.nome) + '</span>' +
-        '<span class="call-meta">' + esc(x.l.status) + '</span>' +
+        '<span class="call-meta">' + statusLabel(x.l) + '</span>' +
         '<span class="call-date">Último contato ' + formatDate(x.ultima) + '</span>' +
         '</div>';
     }).join('');
@@ -811,25 +863,26 @@ document.querySelectorAll('.ktab').forEach(function(btn){
 
 function renderKanban(){
   const board = document.getElementById('kanban-board');
-  const leadsCompra = currentLeads.filter(l => grupoDoTipo(l.tipo) === 'compra');
-  const leadsCaptacao = currentLeads.filter(l => grupoDoTipo(l.tipo) === 'captacao');
+  const leadsCompra = currentLeads.filter(l => l.tipoCompra);
+  const leadsCaptacao = currentLeads.filter(l => l.tipoCaptacao);
   document.getElementById('ktab-count-compra').textContent = leadsCompra.length;
   document.getElementById('ktab-count-captacao').textContent = leadsCaptacao.length;
 
   const grupo = kanbanTab; // 'compra' | 'captacao'
   const leadsDoGrupo = grupo === 'compra' ? leadsCompra : leadsCaptacao;
+  const campoStatus = grupo === 'compra' ? 'statusCompra' : 'statusCaptacao';
   const baseStatus = grupo === 'compra' ? STATUS_COMPRA : STATUS_CAPTACAO;
   const hidden = getHiddenStatuses(grupo);
   let statusesInUse = baseStatus.slice();
-  leadsDoGrupo.forEach(l => { if(statusesInUse.indexOf(l.status) < 0) statusesInUse.push(l.status); });
+  leadsDoGrupo.forEach(l => { const s = l[campoStatus] || 'Novo Lead'; if(statusesInUse.indexOf(s) < 0) statusesInUse.push(s); });
   // nunca esconder uma coluna que ainda tem leads dentro, mesmo se foi "removida" antes
   statusesInUse = statusesInUse.filter(function(status){
     if(hidden.indexOf(status) < 0) return true;
-    return leadsDoGrupo.some(l => l.status === status);
+    return leadsDoGrupo.some(l => (l[campoStatus]||'Novo Lead') === status);
   });
 
   board.innerHTML = statusesInUse.map(function(status){
-    const leads = leadsDoGrupo.filter(l => l.status === status);
+    const leads = leadsDoGrupo.filter(l => (l[campoStatus]||'Novo Lead') === status);
     const podeExcluir = leads.length === 0;
     return '<div class="kcol">' +
       '<div class="kcol-head"><h3>' + esc(status) + '</h3>' +
@@ -838,7 +891,7 @@ function renderKanban(){
         (podeExcluir ? '<button class="kcol-remove" data-status="' + esc(status) + '" title="Remover esta coluna do quadro">✕</button>' : '') +
         '</span></div>' +
       '<div class="kcol-body" data-status="' + esc(status) + '">' +
-        leads.map(cardHtml).join('') +
+        leads.map(function(l){ return cardHtml(l, grupo); }).join('') +
       '</div></div>';
   }).join('') + '<div class="add-lead-col"><button class="add-lead-btn" onclick="openNewLead(\'' + grupo + '\')">+ Adicionar lead</button>' +
     (hidden.length ? '<button class="btn-ghost" id="btn-restore-cols" style="margin-top:8px;font-size:12px;width:100%">↺ Restaurar colunas ocultas</button>' : '') +
@@ -877,45 +930,44 @@ function renderKanban(){
       if(!dragLeadId) return;
       const leadId = dragLeadId;
       dragLeadId = null;
+      const patch = {};
+      patch[campoStatus] = novoStatus;
       if(novoStatus === 'Perdido'){
         const motivo = promptMotivoPerda();
         if(motivo === null) return; // cancelou, não move o card
-        await db.collection('leads').doc(leadId).update({
-          status: novoStatus,
-          motivoPerda: motivo.motivo,
-          motivoPerdaObs: motivo.obs
-        });
-      } else {
-        await db.collection('leads').doc(leadId).update({status: novoStatus});
+        if(grupo === 'compra'){
+          patch.motivoPerdaCompra = motivo.motivo;
+          patch.motivoPerdaCompraObs = motivo.obs;
+        } else {
+          patch.motivoPerdaCaptacao = motivo.motivo;
+          patch.motivoPerdaCaptacaoObs = motivo.obs;
+        }
       }
+      await db.collection('leads').doc(leadId).update(patch);
     });
   });
 }
 
 function promptMotivoPerda(){
-  const opcoes = [
-    'Preço/condição não fechou','Cliente desistiu / sumiu','Imóvel já vendido por terceiros',
-    'Proprietário não quis captar','Comprou/alugou em outro lugar','Sem retorno após várias tentativas',
-    'Fora do perfil/orçamento','Outro'
-  ];
-  const texto = 'Motivo da perda (digite o número):\n' + opcoes.map((o,i)=>(i+1)+' - '+o).join('\n');
+  const texto = 'Motivo da perda (digite o número):\n' + MOTIVOS_PERDA.map((o,i)=>(i+1)+' - '+o).join('\n');
   const escolha = prompt(texto, '1');
   if(escolha === null) return null;
   const idx = parseInt(escolha) - 1;
-  const motivo = opcoes[idx] || 'Outro';
+  const motivo = MOTIVOS_PERDA[idx] || 'Outro';
   const obs = prompt('Detalhar o motivo (opcional):', '') || '';
   return {motivo: motivo, obs: obs};
 }
 
-function cardHtml(l){
-  const grupo = grupoDoTipo(l.tipo);
-  const badge = grupo === 'compra' ? '🏠 Compra' : '🔑 Captação';
+function cardHtml(l, grupoAtual){
+  const badges = [];
+  if(l.tipoCompra) badges.push('<span class="kbadge2 compra">🏠 Compra</span>');
+  if(l.tipoCaptacao) badges.push('<span class="kbadge2 captacao">🔑 Captação</span>');
   const valor = l.valor ? ('R$ ' + formatMoney(l.valor)) : '';
-  return '<div class="kcard grupo-' + grupo + '" draggable="true" data-id="' + l.id + '">' +
+  return '<div class="kcard grupo-' + grupoAtual + '" draggable="true" data-id="' + l.id + '">' +
     '<span class="kprio">' + (l.prioridade||'').split(' ')[0] + '</span>' +
-    '<div class="kbadge">' + badge + '</div>' +
+    '<div class="kbadges">' + badges.join('') + '</div>' +
     '<div class="kname">' + esc(l.nome) + '</div>' +
-    '<div class="ktype">' + esc(l.tipo||'') + (l.imovel ? ' · ' + esc(truncate(l.imovel,28)) : '') + '</div>' +
+    '<div class="ktype">' + (l.imovel ? esc(truncate(l.imovel,32)) : '') + '</div>' +
     (valor ? '<div class="kval">' + valor + '</div>' : '') +
     (l.comissao ? '<div class="kcomissao">💰 comissão ' + formatBRL(l.comissao) + (l.fifty ? ' (fifty)' : '') + '</div>' : '') +
     '<div class="kmeta">' +
@@ -969,11 +1021,12 @@ function renderLista(){
   document.getElementById('lista-sub').textContent = filtered.length + ' de ' + currentLeads.length + ' leads.';
 
   const rows = filtered.map(function(l){
+    const tipoLabel = [l.tipoCompra?'🏠 Compra':null, l.tipoCaptacao?'🔑 Captação':null].filter(Boolean).join(' + ');
     return '<div class="call-row' + (l.destaque ? ' destaque' : '') + '" data-lead-id="' + l.id + '">' +
       '<input type="checkbox" class="destaque-check" data-id="' + l.id + '" ' + (l.destaque ? 'checked' : '') + ' title="Marcar para atenção especial">' +
       '<span class="call-name" onclick="openLead(\'' + l.id + '\')" style="cursor:pointer">' + esc(l.nome) + '</span>' +
-      '<span class="call-meta" onclick="openLead(\'' + l.id + '\')" style="cursor:pointer">' + esc(l.tipo) + '</span>' +
-      '<span class="call-tag ' + (isEncerrado(l.status)?'':'futuro') + '" style="background:var(--paper-2);color:var(--ink-soft);width:150px;text-align:center;cursor:pointer" onclick="openLead(\'' + l.id + '\')">' + esc(l.status) + '</span>' +
+      '<span class="call-meta" onclick="openLead(\'' + l.id + '\')" style="cursor:pointer">' + tipoLabel + '</span>' +
+      '<span class="call-tag ' + (leadEncerrado(l)?'':'futuro') + '" style="background:var(--paper-2);color:var(--ink-soft);width:210px;text-align:center;cursor:pointer" onclick="openLead(\'' + l.id + '\')">' + statusLabel(l) + '</span>' +
       '<span class="call-meta" onclick="openLead(\'' + l.id + '\')" style="cursor:pointer">' + esc(l.telefone||'—') + '</span>' +
       '<span class="call-date" onclick="openLead(\'' + l.id + '\')" style="cursor:pointer">' + (l.criadoEm ? formatDateFull(l.criadoEm) : 'sem data') + '</span>' +
       '</div>';
@@ -998,30 +1051,58 @@ document.getElementById('lista-sort').addEventListener('change', renderLista);
 
 /* ---------------- Modal: view / edit / new lead ---------------- */
 const overlay = document.getElementById('lead-overlay');
-function fillStatusSelect(){
-  const statusesInUse = STATUS_LIST.slice();
-  currentLeads.forEach(l => { if(statusesInUse.indexOf(l.status) < 0) statusesInUse.push(l.status); });
-  document.getElementById('f-status').innerHTML = statusesInUse.map(s => '<option value="'+esc(s)+'">'+esc(s)+'</option>').join('');
+function fillStatusSelects(){
+  const statusesCompra = STATUS_COMPRA.slice();
+  const statusesCaptacao = STATUS_CAPTACAO.slice();
+  currentLeads.forEach(function(l){
+    if(l.tipoCompra && l.statusCompra && statusesCompra.indexOf(l.statusCompra) < 0) statusesCompra.push(l.statusCompra);
+    if(l.tipoCaptacao && l.statusCaptacao && statusesCaptacao.indexOf(l.statusCaptacao) < 0) statusesCaptacao.push(l.statusCaptacao);
+  });
+  document.getElementById('f-status-compra').innerHTML = statusesCompra.map(s => '<option value="'+esc(s)+'">'+esc(s)+'</option>').join('');
+  document.getElementById('f-status-captacao').innerHTML = statusesCaptacao.map(s => '<option value="'+esc(s)+'">'+esc(s)+'</option>').join('');
+  const motivoOpts = '<option value="">Selecione…</option>' + MOTIVOS_PERDA.map(m => '<option>'+esc(m)+'</option>').join('');
+  document.getElementById('f-motivo-compra').innerHTML = motivoOpts;
+  document.getElementById('f-motivo-captacao').innerHTML = motivoOpts;
+}
+
+function toggleTipoPipelines(){
+  const compra = document.getElementById('f-tipo-compra').checked;
+  const captacao = document.getElementById('f-tipo-captacao').checked;
+  document.getElementById('wrap-status-compra').style.display = compra ? 'grid' : 'none';
+  document.getElementById('wrap-status-captacao').style.display = captacao ? 'grid' : 'none';
+  toggleMotivoPerda();
 }
 function toggleMotivoPerda(){
-  const isPerdido = document.getElementById('f-status').value === 'Perdido';
-  document.getElementById('wrap-motivo-perda').style.display = isPerdido ? 'block' : 'none';
+  const compra = document.getElementById('f-tipo-compra').checked;
+  const captacao = document.getElementById('f-tipo-captacao').checked;
+  document.getElementById('wrap-motivo-compra').style.display = (compra && document.getElementById('f-status-compra').value === 'Perdido') ? 'block' : 'none';
+  document.getElementById('wrap-motivo-captacao').style.display = (captacao && document.getElementById('f-status-captacao').value === 'Perdido') ? 'block' : 'none';
 }
-document.getElementById('f-status').addEventListener('change', toggleMotivoPerda);
+document.getElementById('f-tipo-compra').addEventListener('change', toggleTipoPipelines);
+document.getElementById('f-tipo-captacao').addEventListener('change', toggleTipoPipelines);
+document.getElementById('f-status-compra').addEventListener('change', toggleMotivoPerda);
+document.getElementById('f-status-captacao').addEventListener('change', toggleMotivoPerda);
 
 function openLead(id){
   const l = currentLeads.find(x => x.id === id);
   if(!l) return;
   activeLeadId = id;
   document.getElementById('modal-title').textContent = l.nome;
-  document.getElementById('modal-sub').textContent = l.status === 'Perdido' && l.motivoPerda
-    ? 'Perdido: ' + l.motivoPerda
+  const perdas = [];
+  if(l.tipoCompra && l.statusCompra === 'Perdido' && l.motivoPerdaCompra) perdas.push('Compra perdida: ' + l.motivoPerdaCompra);
+  if(l.tipoCaptacao && l.statusCaptacao === 'Perdido' && l.motivoPerdaCaptacao) perdas.push('Captação perdida: ' + l.motivoPerdaCaptacao);
+  document.getElementById('modal-sub').textContent = perdas.length
+    ? perdas.join(' · ')
     : 'Edite os dados abaixo, incluindo a data de entrada se precisar.';
-  fillStatusSelect();
+  fillStatusSelects();
   document.getElementById('f-nome').value = l.nome || '';
   document.getElementById('f-telefone').value = l.telefone || '';
-  document.getElementById('f-tipo').value = l.tipo || 'Compra';
-  document.getElementById('f-status').value = l.status || 'Novo Lead';
+  document.getElementById('f-tipo-compra').checked = !!l.tipoCompra;
+  document.getElementById('f-tipo-captacao').checked = !!l.tipoCaptacao;
+  document.getElementById('f-status-compra').value = l.statusCompra || 'Novo Lead';
+  document.getElementById('f-status-captacao').value = l.statusCaptacao || 'Novo Lead';
+  document.getElementById('f-motivo-compra').value = l.motivoPerdaCompra || '';
+  document.getElementById('f-motivo-captacao').value = l.motivoPerdaCaptacao || '';
   document.getElementById('f-prioridade').value = l.prioridade || '🔴 Alta';
   document.getElementById('f-temperatura').value = l.temperatura || '';
   document.getElementById('f-valor').value = l.valor || '';
@@ -1031,9 +1112,7 @@ function openLead(id){
   document.getElementById('f-imovel').value = l.imovel || '';
   document.getElementById('f-link').value = l.link || '';
   document.getElementById('f-obs').value = l.observacoes || '';
-  document.getElementById('f-motivo-perda').value = l.motivoPerda || '';
-  document.getElementById('f-motivo-perda-obs').value = l.motivoPerdaObs || '';
-  toggleMotivoPerda();
+  toggleTipoPipelines();
   atualizarComissaoModal();
   document.getElementById('hist-data').value = todayStr();
   renderHistorico(l.historico || []);
@@ -1045,11 +1124,15 @@ function openNewLead(grupo){
   activeLeadId = null;
   document.getElementById('modal-title').textContent = 'Novo lead';
   document.getElementById('modal-sub').textContent = 'Preencha os dados do contato';
-  fillStatusSelect();
+  fillStatusSelects();
   document.getElementById('f-nome').value = '';
   document.getElementById('f-telefone').value = '';
-  document.getElementById('f-tipo').value = grupo === 'captacao' ? 'Captação' : 'Compra';
-  document.getElementById('f-status').value = 'Novo Lead';
+  document.getElementById('f-tipo-compra').checked = (grupo !== 'captacao');
+  document.getElementById('f-tipo-captacao').checked = (grupo === 'captacao');
+  document.getElementById('f-status-compra').value = 'Novo Lead';
+  document.getElementById('f-status-captacao').value = 'Novo Lead';
+  document.getElementById('f-motivo-compra').value = '';
+  document.getElementById('f-motivo-captacao').value = '';
   document.getElementById('f-prioridade').value = '🔴 Alta';
   document.getElementById('f-temperatura').value = '';
   document.getElementById('f-valor').value = '';
@@ -1059,16 +1142,14 @@ function openNewLead(grupo){
   document.getElementById('f-imovel').value = '';
   document.getElementById('f-link').value = '';
   document.getElementById('f-obs').value = '';
-  document.getElementById('f-motivo-perda').value = '';
-  document.getElementById('f-motivo-perda-obs').value = '';
-  toggleMotivoPerda();
+  toggleTipoPipelines();
   atualizarComissaoModal();
   document.getElementById('hist-data').value = todayStr();
   renderHistorico([]);
   document.getElementById('btn-delete-lead').style.display = 'none';
   overlay.classList.add('active');
 }
-['btn-new-lead-1','btn-new-lead-2'].forEach(id => document.getElementById(id).addEventListener('click', openNewLead));
+['btn-new-lead-1','btn-new-lead-2'].forEach(id => document.getElementById(id).addEventListener('click', function(){ openNewLead(kanbanTab); }));
 
 function closeModal(){ overlay.classList.remove('active'); activeLeadId = null; }
 document.getElementById('modal-close').addEventListener('click', closeModal);
@@ -1146,10 +1227,22 @@ document.getElementById('hist-add').addEventListener('click', async function(){
 document.getElementById('btn-save-lead').addEventListener('click', async function(){
   const nome = document.getElementById('f-nome').value.trim();
   if(!nome){ showToast('O nome do lead é obrigatório.'); return; }
-  const status = document.getElementById('f-status').value;
-  const motivoPerda = document.getElementById('f-motivo-perda').value;
-  if(status === 'Perdido' && !motivoPerda){
-    showToast('Selecione o motivo da perda antes de salvar.');
+  const tipoCompra = document.getElementById('f-tipo-compra').checked;
+  const tipoCaptacao = document.getElementById('f-tipo-captacao').checked;
+  if(!tipoCompra && !tipoCaptacao){
+    showToast('Marque pelo menos "Compra" ou "Captação".');
+    return;
+  }
+  const statusCompra = document.getElementById('f-status-compra').value;
+  const statusCaptacao = document.getElementById('f-status-captacao').value;
+  const motivoCompra = document.getElementById('f-motivo-compra').value;
+  const motivoCaptacao = document.getElementById('f-motivo-captacao').value;
+  if(tipoCompra && statusCompra === 'Perdido' && !motivoCompra){
+    showToast('Selecione o motivo da perda em Compra antes de salvar.');
+    return;
+  }
+  if(tipoCaptacao && statusCaptacao === 'Perdido' && !motivoCaptacao){
+    showToast('Selecione o motivo da perda em Captação antes de salvar.');
     return;
   }
   const ultimoContato = pendingHistorico.length ? pendingHistorico.map(h=>h.data).sort().slice(-1)[0] : '';
@@ -1157,8 +1250,12 @@ document.getElementById('btn-save-lead').addEventListener('click', async functio
   const payload = {
     nome: nome,
     telefone: document.getElementById('f-telefone').value.trim(),
-    tipo: document.getElementById('f-tipo').value,
-    status: status,
+    tipoCompra: tipoCompra,
+    tipoCaptacao: tipoCaptacao,
+    statusCompra: tipoCompra ? statusCompra : '',
+    statusCaptacao: tipoCaptacao ? statusCaptacao : '',
+    motivoPerdaCompra: (tipoCompra && statusCompra === 'Perdido') ? motivoCompra : '',
+    motivoPerdaCaptacao: (tipoCaptacao && statusCaptacao === 'Perdido') ? motivoCaptacao : '',
     prioridade: document.getElementById('f-prioridade').value,
     temperatura: document.getElementById('f-temperatura').value,
     valor: document.getElementById('f-valor').value.trim(),
@@ -1166,8 +1263,6 @@ document.getElementById('btn-save-lead').addEventListener('click', async functio
     comissao: calcularComissao(document.getElementById('f-valor').value, document.getElementById('f-fifty').checked),
     proximoFollowup: followupValue,
     followupAutomatico: false,
-    motivoPerda: status === 'Perdido' ? motivoPerda : '',
-    motivoPerdaObs: status === 'Perdido' ? document.getElementById('f-motivo-perda-obs').value.trim() : '',
     imovel: document.getElementById('f-imovel').value.trim(),
     link: document.getElementById('f-link').value.trim(),
     observacoes: document.getElementById('f-obs').value.trim(),
