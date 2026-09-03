@@ -169,6 +169,11 @@
   .call-tag.atrasado{background:var(--brick-soft);color:var(--brick);}
   .call-tag.futuro{background:var(--sage-soft);color:var(--sage);}
   .call-tag.auto{background:#EDE7F6;color:#6B4FA0;}
+  .pend-dismiss{
+    margin-left:auto;padding:5px 11px;border-radius:20px;border:1.5px solid var(--sage);
+    background:var(--sage-soft);color:var(--sage);font-size:11.5px;font-weight:700;white-space:nowrap;
+  }
+  .pend-dismiss:hover{background:var(--sage);color:var(--white);}
   .call-name{font-weight:600;font-size:14.5px;flex:1;min-width:120px;}
   .call-meta{font-size:12.5px;color:var(--ink-soft);}
   .call-date{font-size:12.5px;color:var(--ink-soft);white-space:nowrap;}
@@ -734,17 +739,18 @@ function leadEncerrado(l){
   return compraOk && captacaoOk;
 }
 
-/* Regra automática de follow-up:
-   se o lead não está perdido/vendido, não tem uma próxima data de
-   follow-up marcada, e já se passaram 2+ dias desde o último contato
-   (ou desde a criação, se nunca houve contato) — o sistema sugere e
-   grava sozinho uma data de follow-up (2 dias após o último contato),
-   pra ninguém ficar esquecido "no limbo" sem próxima ação definida. */
+/* Regra automática de follow-up — só se aplica ao pipeline de Compra
+   (captação não entra nessa sugestão, como pedido). Se o lead está em
+   Compra, não está vendido/perdido nesse pipeline, não tem uma próxima
+   data marcada, e já se passaram 2+ dias desde o último contato (ou
+   desde a criação, se nunca houve contato) — o sistema sugere e grava
+   sozinho uma data de follow-up (2 dias após o último contato). */
 async function autoSugerirFollowups(){
   const hoje = todayStr();
   const paraAtualizar = [];
   currentLeads.forEach(function(l){
-    if(leadEncerrado(l)) return;
+    if(!l.tipoCompra) return;
+    if(statusEncerradoCompra(l.statusCompra)) return;
     if(l.proximoFollowup) return;
     const hist = (l.historico||[]).map(h=>h.data).filter(Boolean).sort();
     const ultimaRef = hist.length ? hist[hist.length-1] : (l.criadoEm || hoje);
@@ -785,7 +791,7 @@ function renderDashboard(){
     .reduce((soma, l) => soma + (l.comissao || calcularComissao(l.valor, l.fifty)), 0);
   document.getElementById('stat-comissao').textContent = formatBRL(comissaoTotal);
 
-  const comFollowup = currentLeads.filter(l => l.proximoFollowup && !leadEncerrado(l));
+  const comFollowup = currentLeads.filter(l => l.tipoCompra && l.proximoFollowup && !statusEncerradoCompra(l.statusCompra));
   const atrasados = comFollowup.filter(l => l.proximoFollowup < hoje);
   const hojeList = comFollowup.filter(l => l.proximoFollowup === hoje);
   const futuros = comFollowup.filter(l => l.proximoFollowup > hoje);
@@ -804,13 +810,24 @@ function renderDashboard(){
       let tag = 'futuro', tagLabel = formatDate(l.proximoFollowup);
       if(l.proximoFollowup < hoje){ tag='atrasado'; tagLabel = 'Atrasado · ' + formatDate(l.proximoFollowup); }
       else if(l.proximoFollowup === hoje){ tag='hoje'; tagLabel = 'Hoje'; }
-      return '<div class="call-row" onclick="openLead(\'' + l.id + '\')">' +
-        '<span class="call-tag ' + tag + '">' + tagLabel + '</span>' +
+      return '<div class="call-row">' +
+        '<span class="call-tag ' + tag + '" onclick="openLead(\'' + l.id + '\')" style="cursor:pointer">' + tagLabel + '</span>' +
         (l.followupAutomatico ? '<span class="call-tag auto">🤖 sugerido</span>' : '') +
-        '<span class="call-name">' + esc(l.nome) + '</span>' +
-        '<span class="call-meta">' + esc(l.telefone||'sem telefone') + ' · ' + statusLabel(l) + '</span>' +
+        '<span class="call-name" onclick="openLead(\'' + l.id + '\')" style="cursor:pointer">' + esc(l.nome) + '</span>' +
+        '<span class="call-meta" onclick="openLead(\'' + l.id + '\')" style="cursor:pointer">' + esc(l.telefone||'sem telefone') + ' · ' + statusLabel(l) + '</span>' +
+        '<button class="pend-dismiss" data-id="' + l.id + '" title="Já resolvi, tirar dessa lista">✓ concluir</button>' +
         '</div>';
     }).join('');
+    document.querySelectorAll('.pend-dismiss').forEach(function(btn){
+      btn.addEventListener('click', async function(e){
+        e.stopPropagation();
+        try{
+          await db.collection('leads').doc(btn.dataset.id).update({proximoFollowup: '', followupAutomatico: false});
+        }catch(err){
+          showToast('Erro: ' + err.message);
+        }
+      });
+    });
   }
 
   const semContato = ativos.filter(l => l.historico && l.historico.length)
@@ -1209,12 +1226,22 @@ document.getElementById('hist-add').addEventListener('click', async function(){
   // o modal em seguida sem salvar o resto.
   if(activeLeadId){
     const ultimoContato = pendingHistorico.map(h=>h.data).sort().slice(-1)[0];
+    const leadAtual = currentLeads.find(x => x.id === activeLeadId);
+    const patch = {
+      historico: pendingHistorico,
+      ultimoContato: ultimoContato,
+      followupAutomatico: false
+    };
+    // Se havia um follow-up vencido (hoje ou atrasado) e você acabou de
+    // registrar um contato, ele já foi resolvido — some da tela de
+    // sugestões automaticamente. Um follow-up agendado pro futuro não
+    // é mexido, pra não perder um compromisso já marcado.
+    if(leadAtual && leadAtual.proximoFollowup && leadAtual.proximoFollowup <= todayStr()){
+      patch.proximoFollowup = '';
+      document.getElementById('f-followup').value = '';
+    }
     try{
-      await db.collection('leads').doc(activeLeadId).update({
-        historico: pendingHistorico,
-        ultimoContato: ultimoContato,
-        followupAutomatico: false
-      });
+      await db.collection('leads').doc(activeLeadId).update(patch);
       showToast('Contato registrado.');
     }catch(e){
       showToast('Erro ao salvar contato: ' + e.message);
