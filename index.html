@@ -158,6 +158,12 @@
   #wrap-status-compra,#wrap-status-captacao{
     border-radius:9px;padding:2px 0 4px;margin-top:12px;
   }
+  .cadencia-box{background:#EEF2FF;border:1px solid #C9D3F5;border-radius:9px;padding:14px 16px;margin:4px 0 14px;}
+  .cadencia-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .cadencia-head span{font-size:11.5px;font-weight:700;color:var(--blueprint);text-transform:uppercase;letter-spacing:.03em;}
+  .cadencia-titulo{font-size:13.5px;font-weight:700;margin-bottom:8px;}
+  .cadencia-texto{width:100%;min-height:110px;padding:10px 12px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;line-height:1.5;background:var(--white);resize:vertical;font-family:inherit;color:var(--ink);}
+  .cadencia-hint{font-size:11px;color:var(--ink-soft);margin-top:6px;}
   .comissao-fifty input{width:16px;height:16px;accent-color:var(--sage);}
   .comissao-result{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:13px;color:var(--ink-soft);}
   .comissao-result strong{font-family:'Fraunces',serif;font-size:20px;color:var(--sage);font-weight:600;}
@@ -422,6 +428,15 @@
           <select id="f-motivo-compra"><option value="">Selecione…</option></select>
         </div>
       </div>
+      <div id="cadencia-box" class="cadencia-box" style="display:none">
+        <div class="cadencia-head">
+          <span id="cadencia-fase-label"></span>
+          <button class="btn-ghost" id="cadencia-copiar" style="font-size:12px">📋 Copiar mensagem</button>
+        </div>
+        <div class="cadencia-titulo" id="cadencia-titulo"></div>
+        <textarea id="cadencia-texto" class="cadencia-texto" readonly></textarea>
+        <div class="cadencia-hint">Sugestão da cadência de follow-up — adapte os campos entre colchetes antes de enviar.</div>
+      </div>
       <div class="grid2" id="wrap-status-captacao">
         <div class="field-sm"><label>Status (Captação)</label><select id="f-status-captacao"></select></div>
         <div class="field-sm" id="wrap-motivo-captacao" style="display:none">
@@ -501,12 +516,12 @@
         }
    ===================================================================== */
 const firebaseConfig = {
-  apiKey: "AIzaSyC8D1vy8sSdO7Z_uLbqGpXPiK1YUZP1twc",
-  authDomain: "crm-imoveis-wn.firebaseapp.com",
-  projectId: "crm-imoveis-wn",
-  storageBucket: "crm-imoveis-wn.firebasestorage.app",
-  messagingSenderId: "370260383630",
-  appId: "1:370260383630:web:ba21b73f5e1a6a197a76df"
+  apiKey: "COLE_AQUI_SUA_API_KEY",
+  authDomain: "COLE_AQUI.firebaseapp.com",
+  projectId: "COLE_AQUI_O_PROJECT_ID",
+  storageBucket: "COLE_AQUI.appspot.com",
+  messagingSenderId: "COLE_AQUI",
+  appId: "COLE_AQUI"
 };
 
 const MASTER_EMAIL = "sequeagora@gmail.com";
@@ -539,6 +554,262 @@ const MOTIVOS_PERDA = [
   'Fora do perfil/orçamento','Outro'
 ];
 let kanbanTab = 'compra';
+
+/* ---------------------------------------------------------------------
+   Cadência de follow-up 14D + 7S + 7M (método Missão de Vendas / Halca).
+   Só se aplica ao pipeline de Compra. 28 etapas no total:
+   D1-D14 (1 contato por dia), S1-S7 (1 por semana), M1-M7 (1 por mês).
+   Cada etapa tem um script sugerido, adaptado com o nome do lead e o
+   imóvel de interesse quando esses dados estão preenchidos.
+--------------------------------------------------------------------- */
+const CADENCIA_STEPS = [
+  {fase:'14D', rotulo:'Dia 1', titulo:'Confirmação', script:
+`Oi {nome}, tudo bem?
+
+Aqui é [seu nome], corretor(a) da [imobiliária/incorporadora].
+
+Estou te retornando o contato — você se cadastrou com interesse no {imovel}.
+
+Estou te enviando aqui o mesmo anúncio que você viu para ficar mais fácil lembrar 👇
+[Envie a imagem/anúncio original]
+
+É esse mesmo?`},
+  {fase:'14D', rotulo:'Dia 2', titulo:'Prova social', script:
+`{nome}, ontem te retornei sobre {imovel} que você solicitou.
+
+Hoje vi isso aqui e lembrei do seu cadastro 👇
+[Print/link de notícia, case ou dado real sobre a região/empreendimento]
+
+O que me chamou atenção foi [fato principal].
+
+Você está por aí? Vou tentar falar com você hoje às [horário] para te explicar rapidamente o que está acontecendo por lá.`},
+  {fase:'14D', rotulo:'Dia 3', titulo:'Diferencial principal', script:
+`{nome}, dando sequência ao que te falei sobre {imovel} 👇
+
+Um dos pontos que mais chama atenção de quem já visitou é:
+✅ [diferencial 1]
+✅ [diferencial 2]
+✅ [diferencial 3]
+
+[Envie uma imagem diferente do empreendimento]
+
+Faz sentido eu te passar mais detalhes?`},
+  {fase:'14D', rotulo:'Dia 4', titulo:'Localização', script:
+`{nome}, seguindo aqui com as informações do {imovel} 📍
+
+Outro ponto que pesa bastante nesse projeto é a localização:
+📍 a [X minutos] de [ponto de referência relevante]
+📍 fácil acesso pela [avenida/rodovia]
+📍 próximo a [shopping, metrô, praia, centro empresarial etc.]
+
+Foi principalmente a localização que chamou sua atenção quando você clicou no anúncio?`},
+  {fase:'14D', rotulo:'Dia 5', titulo:'Fluxo de pagamento', script:
+`{nome}, seguindo aqui com as informações do {imovel} 👇
+
+Uma dúvida que costuma pesar bastante nessa etapa é entender como funciona o pagamento.
+
+💰 Hoje, o fluxo pode ser estruturado assim:
+- Entrada/sinal: a partir de R$ [valor]
+- Parcelas mensais: a partir de R$ [valor]
+- Reforços: [frequência]
+- Saldo nas chaves: [condição]
+
+Quer que eu monte uma simulação mais próxima da sua realidade?`},
+  {fase:'14D', rotulo:'Dia 6', titulo:'Tipologia específica', script:
+`{nome}, seguindo aqui com as opções do {imovel} 👇
+
+Separei uma planta que costuma chamar bastante atenção:
+🏠 [tipo/nome da planta] — [m²]
+✅ [X] dormitórios ([X suítes])
+✅ [X] vaga(s) de garagem
+✅ Entrega prevista: [data]
+
+[Envie a planta baixa ou perspectiva da unidade]
+
+Essa planta faria sentido para o que você procura?`},
+  {fase:'14D', rotulo:'Dia 7', titulo:'Quebra de padrão', script:
+`Estratégia de hoje (não é mensagem de texto pronta):
+
+Envie 5 mensagens curtas (qualquer coisa, ex: emojis soltos) e apague todas em seguida. Não mande mais nada depois.
+
+O objetivo é o próprio lead voltar e perguntar "Oi?" / "O que você mandou?".
+
+Se ele responder, use:
+"Ah, desculpa... era um convite. Mas como tentei falar com você esses últimos dias e não consegui retorno, achei que não tivesse mais interesse. Por isso apaguei."
+
+Se ele insistir, explique (de preferência em áudio) que é um convite para conhecer o empreendimento pessoalmente / condições especiais para convidados.`},
+  {fase:'14D', rotulo:'Dia 8', titulo:'Vista ou região', script:
+`{nome}, seguindo com {imovel} — separei isso aqui porque acho que ajuda a visualizar melhor o projeto.
+
+[Envie foto/render da vista, região ou principal ponto do entorno]
+
+Algumas unidades têm [vista mar / vista para X / vista livre] e ficam próximas de [referência relevante].
+
+Essa vista faria diferença para você?`},
+  {fase:'14D', rotulo:'Dia 9', titulo:'Lifestyle / qualidade de vida', script:
+`{nome}, até agora te mostrei bastante coisa sobre {imovel}, mas tem um ponto que não aparece na planta nem na tabela: como é viver por aqui.
+
+Morar na região significa ter no dia a dia:
+✅ [parque/praia/lazer]
+✅ [restaurantes, shopping, serviços]
+✅ [mobilidade, escolas, conveniência]
+
+Você se imagina morando em uma região assim? Posso te ligar às [horário]?`},
+  {fase:'14D', rotulo:'Dia 10', titulo:'Oferta melhorada', script:
+`{nome}, voltei aqui porque surgiu uma condição melhor no {imovel} 👇
+
+Hoje dá para estruturar assim:
+💰 Entrada a partir de R$ [valor]
+✅ [menos reforços]
+✅ [prazo maior]
+
+Ficou melhor do que a condição que te mostrei anteriormente. Quer que eu monte uma simulação para o seu caso?`},
+  {fase:'14D', rotulo:'Dia 11', titulo:'Por que agora?', script:
+`{nome}, já te mostrei bastante coisa sobre {imovel}, então quero ser direto sobre um ponto importante:
+
+Hoje existem algumas chaves que tornam este momento interessante:
+🔑 [fase atual do lançamento / condição comercial vigente]
+🔑 [cenário econômico ou condição de financiamento relevante]
+🔑 [ritmo de vendas / disponibilidade atual]
+
+Quanto mais cedo você analisa, mais opções tende a ter. Quer que eu te mostre os números de hoje?`},
+  {fase:'14D', rotulo:'Dia 12', titulo:'Qual é o seu medo?', script:
+`{nome}, depois de tudo que já te mostrei sobre {imovel}, posso ser direto?
+
+Na hora de decidir sobre um imóvel, muitas vezes o que trava não é só o preço. É aquele pensamento:
+"E se eu me arrepender depois?"
+"E se a construtora atrasar?"
+"E se eu não conseguir manter esse pagamento mais pra frente?"
+
+Qual desses medos — ou algum outro — mais pesa para você hoje? Me conta.`},
+  {fase:'14D', rotulo:'Dia 13', titulo:'A tabela vai virar', script:
+`{nome}, como venho te mostrando {imovel} nesses últimos dias, preciso te avisar de uma coisa importante 👇
+
+A tabela atual [muda no dia X / entra em nova fase / terá reajuste de Y%].
+
+Até [data] ainda é possível analisar as unidades com os valores e condições de hoje. Quer que eu separe as melhores opções da tabela de hoje para você?`},
+  {fase:'14D', rotulo:'Dia 14', titulo:'Última chamada', script:
+`⏰ {nome}, tentei falar com você de algumas formas nesses últimos dias sobre {imovel}, mas não consegui seu retorno.
+
+Frente ao respeito que temos um pelo outro: posso entender seu silêncio como falta de interesse e tomar a oportunidade como encerrada?`},
+  {fase:'7S', rotulo:'Semana 1', titulo:'Abordagem', script:
+`{nome}, deixa eu te fazer uma pergunta rápida:
+
+Você ainda está 100% satisfeito com o imóvel onde mora hoje ou existe alguma coisa que, se pudesse, mudaria?
+
+Pergunto porque apareceu uma condição em {imovel} que me fez lembrar do seu cadastro. Se surgisse algo realmente melhor, faria sentido conhecer?`},
+  {fase:'7S', rotulo:'Semana 2', titulo:'Novidade', script:
+`{nome}, lembrei de você hoje porque entrou uma oportunidade diferente por aqui.
+
+É um [tipo de imóvel], em [região], com [principal vantagem].
+
+Não sei se é exatamente o que você procura, mas achei que valia perguntar: isso faria mais sentido do que o projeto que eu vinha te mostrando?`},
+  {fase:'7S', rotulo:'Semana 3', titulo:'Prova social', script:
+`{nome}, olha esse caso porque achei que tem tudo a ver com o que eu vinha te mostrando 👇
+
+[Foto, depoimento ou case real de outro cliente]
+
+Esse cliente também estava numa situação parecida e acabou decidindo por [motivo]. Quando vi, lembrei de você. O que precisaria acontecer para uma compra assim fazer sentido no seu momento?`},
+  {fase:'7S', rotulo:'Semana 4', titulo:'A notícia', script:
+`{nome}, não ia te chamar sobre imóvel hoje. Mas vi essa informação sobre a região e lembrei que você tinha se cadastrado por aqui 👇
+
+[Print/link de notícia ou dado real]
+
+Você já encontrou o imóvel que estava procurando? Ou ainda está na busca?`},
+  {fase:'7S', rotulo:'Semana 5', titulo:'Venda o benefício', script:
+`{nome}, deixa eu te perguntar uma coisa diferente:
+
+Hoje, o que faria mais diferença na sua rotina — mais segurança, mais espaço, mais lazer ou gastar menos tempo no trânsito?
+
+(Se o foco for investimento: o que você espera que um bom investimento imobiliário faça pelo seu patrimônio — renda, valorização, proteção patrimonial ou revenda?)`},
+  {fase:'7S', rotulo:'Semana 6', titulo:'Convite', script:
+`{nome}, surgiu um motivo diferente para eu voltar a falar com você.
+
+Vamos receber alguns clientes na [incorporadora/stand] para um café e apresentação das oportunidades disponíveis — só para convidados.
+
+Posso confirmar seu nome na lista?`},
+  {fase:'7S', rotulo:'Semana 7', titulo:'Fechamento', script:
+`{nome}, vou ser bem transparente com você. Já faz algumas semanas que venho tentando te apresentar oportunidades sobre {imovel}.
+
+Me ajuda com uma resposta rápida:
+1 — Ainda quero comprar, mas não agora.
+2 — Continuo procurando, pode me mandar oportunidades.
+3 — Não tenho mais interesse neste momento.
+
+Se eu não tiver retorno, tudo certo — volto a falar quando surgir algo que realmente faça sentido.`},
+  {fase:'7M', rotulo:'Mês 1', titulo:'Nova oportunidade', script:
+`{nome}, lembrei de você porque apareceu uma oportunidade diferente por aqui 👇
+
+Como você tinha demonstrado interesse nessa região, achei que valia avisar. Essa opção faz mais sentido para você do que a anterior?`},
+  {fase:'7M', rotulo:'Mês 2', titulo:'Movimento da região', script:
+`{nome}, vi essa informação hoje sobre a região e lembrei do seu cadastro 👇
+
+[Print/link de notícia ou dado real]
+
+Você ainda considera comprar algo por aqui?`},
+  {fase:'7M', rotulo:'Mês 3', titulo:'Prova social', script:
+`{nome}, olha esse caso que aconteceu recentemente 👇
+
+[Foto/depoimento/case real]
+
+Esse cliente também estava há um tempo pesquisando e decidiu por [motivo real]. Hoje, o que precisaria acontecer para você voltar a considerar uma compra?`},
+  {fase:'7M', rotulo:'Mês 4', titulo:'Conteúdo útil', script:
+`{nome}, dessa vez não estou te chamando para vender nenhum imóvel 😅
+
+Separei um material rápido sobre [como analisar um lançamento / fluxo de pagamento / cuidados ao comprar na planta].
+
+Se depois quiser trocar uma ideia, me chama por aqui.`},
+  {fase:'7M', rotulo:'Mês 5', titulo:'Novo ângulo', script:
+`{nome}, deixa eu te fazer uma pergunta rápida:
+
+Se aparecesse hoje um imóvel na região que trouxesse [benefício relevante] e [condição relevante], isso seria suficiente para você voltar a olhar o mercado?
+
+Apareceu uma oportunidade com esse perfil e lembrei do seu cadastro. Se fizer sentido, te mostro.`},
+  {fase:'7M', rotulo:'Mês 6', titulo:'Convite', script:
+`{nome}, surgiu um motivo diferente para eu te chamar.
+
+Vamos receber alguns clientes na [incorporadora/stand] — algo tranquilo, para conhecer projetos e tomar um café.
+
+Quer que eu veja um horário para você?`},
+  {fase:'7M', rotulo:'Mês 7', titulo:'Atualização de perfil', script:
+`{nome}, faz um tempo que você se cadastrou buscando informações sobre {imovel}. Como muita coisa pode mudar nesse período, deixa eu atualizar:
+
+Hoje você está:
+1) Procurando um imóvel para morar
+2) Procurando uma oportunidade para investir
+3) Tem interesse, mas deixou pra mais pra frente
+4) Não está mais procurando imóvel
+
+Pode responder só com o número — assim só volto a chamar quando fizer sentido para você.`}
+];
+function scriptDaCadencia(l){
+  const idx = Math.min(Math.max((l.cadenciaStep||1) - 1, 0), CADENCIA_STEPS.length - 1);
+  const step = CADENCIA_STEPS[idx];
+  const texto = step.script
+    .replace(/\{nome\}/g, l.nome ? l.nome.split(' ')[0] : '[nome]')
+    .replace(/\{imovel\}/g, l.imovel || '[Nome do Empreendimento]');
+  return Object.assign({}, step, {texto: texto, numero: idx+1, total: CADENCIA_STEPS.length});
+}
+/* Avança o lead para a próxima etapa da cadência e calcula a nova data
+   de follow-up de acordo com a fase (diária em 14D, semanal em 7S,
+   mensal em 7M). Ao terminar as 28 etapas, marca como concluída e não
+   sugere mais nada sozinho — cabe ao usuário decidir manualmente. */
+function avancarCadencia(l){
+  const atual = l.cadenciaStep || 0;
+  const proximo = atual + 1;
+  if(proximo > CADENCIA_STEPS.length){
+    return {cadenciaStep: atual, cadenciaConcluida: true, proximoFollowup: '', followupAutomatico: false};
+  }
+  const faseProx = CADENCIA_STEPS[proximo-1].fase;
+  const dias = faseProx === '14D' ? 1 : (faseProx === '7S' ? 7 : 30);
+  const proxData = new Date();
+  proxData.setDate(proxData.getDate() + dias);
+  return {
+    cadenciaStep: proximo,
+    proximoFollowup: proxData.toISOString().slice(0,10),
+    followupAutomatico: true
+  };
+}
 
 /* Colunas ocultadas manualmente pelo usuário (personalização do kanban),
    guardadas no navegador — por aba. */
@@ -739,35 +1010,25 @@ function leadEncerrado(l){
   return compraOk && captacaoOk;
 }
 
-/* Regra automática de follow-up — só se aplica ao pipeline de Compra
-   (captação não entra nessa sugestão, como pedido). Se o lead está em
-   Compra, não está vendido/perdido nesse pipeline, não tem uma próxima
-   data marcada, e já se passaram 2+ dias desde o último contato (ou
-   desde a criação, se nunca houve contato) — o sistema sugere e grava
-   sozinho uma data de follow-up (2 dias após o último contato). */
+/* Inicia a cadência 14D+7S+7M (só pipeline de Compra) para leads que
+   ainda não têm uma etapa definida. O primeiro passo (Dia 1) fica
+   pendente já a partir da data de entrada do lead. Leads perdidos/
+   vendidos nunca entram na cadência. */
 async function autoSugerirFollowups(){
-  const hoje = todayStr();
   const paraAtualizar = [];
   currentLeads.forEach(function(l){
     if(!l.tipoCompra) return;
     if(statusEncerradoCompra(l.statusCompra)) return;
-    if(l.proximoFollowup) return;
-    const hist = (l.historico||[]).map(h=>h.data).filter(Boolean).sort();
-    const ultimaRef = hist.length ? hist[hist.length-1] : (l.criadoEm || hoje);
-    const dias = diasEntre(ultimaRef, hoje);
-    if(dias >= 2){
-      const sugerida = new Date(ultimaRef);
-      sugerida.setDate(sugerida.getDate() + 2);
-      const sugeridaStr = sugerida.toISOString().slice(0,10);
-      paraAtualizar.push({id:l.id, data:sugeridaStr});
-      l.proximoFollowup = sugeridaStr;
-      l.followupAutomatico = true;
-    }
+    if(l.cadenciaStep) return; // já está em algum ponto da cadência
+    const patch = {cadenciaStep: 1, followupAutomatico: true};
+    if(!l.proximoFollowup) patch.proximoFollowup = l.criadoEm || todayStr();
+    paraAtualizar.push({id:l.id, patch:patch});
+    Object.assign(l, patch);
   });
   if(paraAtualizar.length === 0) return;
   const batch = db.batch();
   paraAtualizar.forEach(function(x){
-    batch.update(db.collection('leads').doc(x.id), {proximoFollowup: x.data, followupAutomatico: true});
+    batch.update(db.collection('leads').doc(x.id), x.patch);
   });
   await batch.commit();
 }
@@ -810,21 +1071,30 @@ function renderDashboard(){
       let tag = 'futuro', tagLabel = formatDate(l.proximoFollowup);
       if(l.proximoFollowup < hoje){ tag='atrasado'; tagLabel = 'Atrasado · ' + formatDate(l.proximoFollowup); }
       else if(l.proximoFollowup === hoje){ tag='hoje'; tagLabel = 'Hoje'; }
+      const cad = l.cadenciaStep ? CADENCIA_STEPS[Math.min(l.cadenciaStep,CADENCIA_STEPS.length)-1] : null;
+      const cadLabel = cad ? ('Cadência ' + cad.fase + ' · ' + cad.rotulo) : '';
       return '<div class="call-row">' +
         '<span class="call-tag ' + tag + '" onclick="openLead(\'' + l.id + '\')" style="cursor:pointer">' + tagLabel + '</span>' +
-        (l.followupAutomatico ? '<span class="call-tag auto">🤖 sugerido</span>' : '') +
+        (cadLabel ? '<span class="call-tag auto">' + cadLabel + '</span>' : '') +
         '<span class="call-name" onclick="openLead(\'' + l.id + '\')" style="cursor:pointer">' + esc(l.nome) + '</span>' +
         '<span class="call-meta" onclick="openLead(\'' + l.id + '\')" style="cursor:pointer">' + esc(l.telefone||'sem telefone') + ' · ' + statusLabel(l) + '</span>' +
-        '<button class="pend-dismiss" data-id="' + l.id + '" title="Já resolvi, tirar dessa lista">✓ concluir</button>' +
+        '<button class="pend-dismiss" data-id="' + l.id + '" title="Já entrei em contato, avançar para a próxima etapa da cadência">✓ concluir</button>' +
         '</div>';
     }).join('');
     document.querySelectorAll('.pend-dismiss').forEach(function(btn){
       btn.addEventListener('click', async function(e){
         e.stopPropagation();
+        btn.disabled = true;
+        btn.textContent = '...';
         try{
-          await db.collection('leads').doc(btn.dataset.id).update({proximoFollowup: '', followupAutomatico: false});
+          const l = currentLeads.find(x => x.id === btn.dataset.id);
+          const patch = avancarCadencia(l || {});
+          await db.collection('leads').doc(btn.dataset.id).update(patch);
+          showToast(patch.cadenciaConcluida ? 'Cadência concluída — sem novas sugestões automáticas.' : 'Avançado para a próxima etapa da cadência.');
         }catch(err){
           showToast('Erro: ' + err.message);
+          btn.disabled = false;
+          btn.textContent = '✓ concluir';
         }
       });
     });
@@ -1094,11 +1364,48 @@ function toggleMotivoPerda(){
   const captacao = document.getElementById('f-tipo-captacao').checked;
   document.getElementById('wrap-motivo-compra').style.display = (compra && document.getElementById('f-status-compra').value === 'Perdido') ? 'block' : 'none';
   document.getElementById('wrap-motivo-captacao').style.display = (captacao && document.getElementById('f-status-captacao').value === 'Perdido') ? 'block' : 'none';
+  atualizarVisibilidadeCadencia();
+}
+function atualizarVisibilidadeCadencia(){
+  const box = document.getElementById('cadencia-box');
+  const compra = document.getElementById('f-tipo-compra').checked;
+  const statusCompra = document.getElementById('f-status-compra').value;
+  const l = activeLeadId ? currentLeads.find(x => x.id === activeLeadId) : null;
+  if(!compra || !l || !l.cadenciaStep || statusEncerradoCompra(statusCompra)){
+    box.style.display = 'none';
+    return;
+  }
+  renderCadenciaBox(Object.assign({}, l, {tipoCompra: true, statusCompra: statusCompra}));
 }
 document.getElementById('f-tipo-compra').addEventListener('change', toggleTipoPipelines);
 document.getElementById('f-tipo-captacao').addEventListener('change', toggleTipoPipelines);
 document.getElementById('f-status-compra').addEventListener('change', toggleMotivoPerda);
 document.getElementById('f-status-captacao').addEventListener('change', toggleMotivoPerda);
+
+function renderCadenciaBox(l){
+  const box = document.getElementById('cadencia-box');
+  if(!l.tipoCompra || statusEncerradoCompra(l.statusCompra) || !l.cadenciaStep){
+    box.style.display = 'none';
+    return;
+  }
+  const s = scriptDaCadencia(l);
+  document.getElementById('cadencia-fase-label').textContent = 'Cadência ' + s.fase + ' · ' + s.rotulo + ' (etapa ' + s.numero + ' de ' + s.total + ')';
+  document.getElementById('cadencia-titulo').textContent = s.titulo;
+  document.getElementById('cadencia-texto').value = s.texto;
+  box.style.display = 'block';
+}
+document.getElementById('cadencia-copiar').addEventListener('click', function(){
+  const ta = document.getElementById('cadencia-texto');
+  ta.select();
+  ta.setSelectionRange(0, 99999);
+  try{
+    navigator.clipboard.writeText(ta.value);
+    showToast('Mensagem copiada.');
+  }catch(e){
+    document.execCommand('copy');
+    showToast('Mensagem copiada.');
+  }
+});
 
 function openLead(id){
   const l = currentLeads.find(x => x.id === id);
@@ -1129,6 +1436,7 @@ function openLead(id){
   document.getElementById('f-imovel').value = l.imovel || '';
   document.getElementById('f-link').value = l.link || '';
   document.getElementById('f-obs').value = l.observacoes || '';
+  renderCadenciaBox(l);
   toggleTipoPipelines();
   atualizarComissaoModal();
   document.getElementById('hist-data').value = todayStr();
@@ -1159,6 +1467,7 @@ function openNewLead(grupo){
   document.getElementById('f-imovel').value = '';
   document.getElementById('f-link').value = '';
   document.getElementById('f-obs').value = '';
+  document.getElementById('cadencia-box').style.display = 'none';
   toggleTipoPipelines();
   atualizarComissaoModal();
   document.getElementById('hist-data').value = todayStr();
@@ -1229,16 +1538,14 @@ document.getElementById('hist-add').addEventListener('click', async function(){
     const leadAtual = currentLeads.find(x => x.id === activeLeadId);
     const patch = {
       historico: pendingHistorico,
-      ultimoContato: ultimoContato,
-      followupAutomatico: false
+      ultimoContato: ultimoContato
     };
-    // Se havia um follow-up vencido (hoje ou atrasado) e você acabou de
-    // registrar um contato, ele já foi resolvido — some da tela de
-    // sugestões automaticamente. Um follow-up agendado pro futuro não
-    // é mexido, pra não perder um compromisso já marcado.
-    if(leadAtual && leadAtual.proximoFollowup && leadAtual.proximoFollowup <= todayStr()){
-      patch.proximoFollowup = '';
-      document.getElementById('f-followup').value = '';
+    // Se havia um follow-up de Compra vencido (hoje ou atrasado) e você
+    // acabou de registrar um contato, isso avança a cadência para a
+    // próxima etapa automaticamente — some da lista até o novo prazo.
+    if(leadAtual && leadAtual.tipoCompra && leadAtual.proximoFollowup && leadAtual.proximoFollowup <= todayStr()){
+      Object.assign(patch, avancarCadencia(leadAtual));
+      document.getElementById('f-followup').value = patch.proximoFollowup || '';
     }
     try{
       await db.collection('leads').doc(activeLeadId).update(patch);
